@@ -17,11 +17,11 @@ class UserSeeder extends Seeder
         User::create([
             'nip_lama' => '340014013',
             'nip_baru' => '197406301994011002',
-            'name' => 'John Doe',
+            'name' => 'test',
             'jabatan' => 'Kepala Subbagian Umum',
             'gol' => 'III/d',
             'jk' => 'LK',
-            'username' => 'johndoe',
+            'username' => 'test',
             'password' => Hash::make('12345678'),
             'level' => 1,
         ]);

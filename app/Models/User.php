@@ -9,13 +9,19 @@ class User extends Authenticatable
 {
     use Notifiable;
 
+    protected $table = 'organik';
+    protected $primaryKey = 'nip_baru';
+    public $incrementing = false;
+    protected $keyType = 'string';
+    public $timestamps = false;
+
     protected $fillable = [
         'nip_lama',
         'nip_baru',
-        'name',
+        'nama',
         'jabatan',
         'gol',
-        'jenis_kelamin',
+        'jk',
         'username',
         'password',
         'level',
@@ -23,6 +29,5 @@ class User extends Authenticatable
 
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 }
