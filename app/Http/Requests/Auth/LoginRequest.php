@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -42,7 +43,11 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('username', 'password'), $this->boolean('remember'))) {
+        // Cari user langsung di tabel organik berdasarkan username
+        $user = User::where('username', $this->input('username'))->first();
+
+        // Validasi kecocokan password MD5
+        if (! $user || $user->password !== md5($this->input('password'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -50,6 +55,8 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Paksa login jika cocok
+        Auth::login($user, $this->boolean('remember'));
         RateLimiter::clear($this->throttleKey());
     }
 
