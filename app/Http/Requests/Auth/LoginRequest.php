@@ -13,19 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -34,19 +26,13 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        // Cari user langsung di tabel organik berdasarkan username
         $user = User::where('username', $this->input('username'))->first();
 
-        // Validasi kecocokan password MD5
+        // Validasi password MD5 bawaan sistem lama
         if (! $user || $user->password !== md5($this->input('password'))) {
             RateLimiter::hit($this->throttleKey());
 
@@ -55,16 +41,10 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // Paksa login jika cocok
         Auth::login($user, $this->boolean('remember'));
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -83,9 +63,6 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->string('username')).'|'.$this->ip());

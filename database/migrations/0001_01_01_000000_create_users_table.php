@@ -20,8 +20,10 @@ return new class extends Migration
             $table->string('gol')->nullable();
             $table->string('jenis_kelamin')->nullable();
             $table->string('username')->unique();
+            $table->string('email')->unique()->nullable();
             $table->string('password');
             $table->integer('level')->default(2);
+            $table->boolean('must_change_password')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });

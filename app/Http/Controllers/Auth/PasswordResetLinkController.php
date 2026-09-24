@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User; // Tambahkan import Model User
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -23,29 +24,40 @@ class PasswordResetLinkController extends Controller
     }
 
     /**
-     * Handle an incoming password reset link request.
+     * Handle an incoming password reset link request via NIP.
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
+        // 1. Ubah validasi menjadi NIP, pastikan ada di database (nip_baru)
         $request->validate([
-            'email' => 'required|email',
+            'nip' => 'required|string|exists:users,nip_baru',
+        ], [
+            'nip.exists' => 'NIP tidak ditemukan di dalam sistem.',
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
+        // 2. Cari user berdasarkan NIP
+        $user = User::where('nip_baru', $request->nip)->first();
+
+        // 3. Pastikan user tersebut memiliki email di sistem
+        if (! $user || ! $user->email) {
+            throw ValidationException::withMessages([
+                'nip' => ['Akun ini tidak memiliki email yang valid untuk pemulihan kata sandi.'],
+            ]);
+        }
+
+        // 4. Kirim link reset menggunakan email yang ditemukan
         $status = Password::sendResetLink(
-            $request->only('email')
+            ['email' => $user->email]
         );
 
         if ($status == Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
+            return back()->with('status', 'Tautan pemulihan kata sandi telah dikirim ke Email resmi BPS Anda.');
         }
 
         throw ValidationException::withMessages([
-            'email' => [trans($status)],
+            'nip' => [trans($status)],
         ]);
     }
 }
