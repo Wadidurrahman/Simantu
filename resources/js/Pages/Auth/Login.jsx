@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Head, useForm } from "@inertiajs/react";
 import {
   Eye,
@@ -10,21 +10,36 @@ import {
   Map,
   CheckCircle2,
   Loader2,
-  AlertCircle,
+  XCircle,
 } from "lucide-react";
 
 export default function LoginForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // State untuk mengontrol kemunculan popup error melayang
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   const { data, setData, post, processing, errors, clearErrors } = useForm({
     username: '',
     password: '',
   });
 
+  // Pantau jika ada error, tampilkan popup, lalu hilangkan otomatis setelah 5 detik
+  useEffect(() => {
+    if (errors.username) {
+      setShowErrorPopup(true);
+      const timer = setTimeout(() => {
+        setShowErrorPopup(false);
+        clearErrors();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errors.username, clearErrors]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     clearErrors();
+    setShowErrorPopup(false);
 
     post('/login', {
       onSuccess: () => {
@@ -37,7 +52,9 @@ export default function LoginForm() {
     <>
       <Head title="Log in" />
 
-      <main className="relative min-h-dvh w-full overflow-hidden bg-slate-50 font-sans text-slate-900 selection:bg-blue-600 selection:text-white flex items-center justify-center">
+      {/* Gunakan h-screen dan overflow-hidden secara ketat pada elemen terluar untuk mencegah scroll */}
+      <main className="relative h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-900 selection:bg-blue-600 selection:text-white flex items-center justify-center">
+        {/* Background Effects */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div
             className="absolute inset-0 scale-[1.01] bg-cover bg-center bg-no-repeat animate-[slowZoom_25s_ease-in-out_infinite_alternate]"
@@ -47,14 +64,15 @@ export default function LoginForm() {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-100/50 via-transparent to-transparent lg:bg-gradient-to-b lg:from-white/30 lg:via-transparent lg:to-slate-900/5" />
         </div>
 
-        <div className="relative z-10 flex h-full w-full items-center justify-center overflow-x-hidden px-4 py-8 sm:px-8 lg:px-10">
+        {/* HAPUS overflow-y-auto di sini agar konten tidak pernah bisa di-scroll */}
+        <div className="relative z-10 flex h-full w-full items-center justify-center px-4 sm:px-8 lg:px-10">
           <div
-            className={`grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1fr_400px] lg:gap-16 xl:gap-24 transition-all duration-700 ${
+            className={`flex flex-col lg:flex-row w-full max-w-6xl items-center justify-between gap-10 lg:gap-16 xl:gap-24 transition-all duration-700 ${
               isSuccess ? "scale-[0.985] opacity-95" : "scale-100 opacity-100"
             }`}
           >
             {/* BAGIAN TEKS HERO */}
-            <section className="order-2 lg:order-1 flex min-w-0 flex-col justify-center text-center lg:text-left lg:translate-x-3 mt-4 lg:mt-0">
+            <section className="flex-1 flex flex-col justify-center text-center lg:text-left order-2 lg:order-1 hidden sm:flex">
               <div className="max-w-2xl mx-auto lg:mx-0">
                 <div className="mb-4">
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700 animate-pulse">
@@ -65,7 +83,7 @@ export default function LoginForm() {
                   </p>
                 </div>
 
-                <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.01em] text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-green-500 to-orange-500 sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] drop-shadow-sm">
+                <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.01em] text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-green-500 to-orange-500 sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] drop-shadow-sm pb-2">
                   SIMANTU
                 </h1>
 
@@ -112,9 +130,9 @@ export default function LoginForm() {
             </section>
 
             {/* BAGIAN FORM CARD */}
-            <section className="order-1 lg:order-2 flex w-full justify-center lg:justify-start pb-4 lg:pb-0">
+            <section className="w-full lg:w-[420px] shrink-0 flex justify-center order-1 lg:order-2">
               <div
-                className={`w-full max-w-[420px] rounded-2xl border border-white/80 bg-white/85 p-6 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.18)] backdrop-blur-md transition-all duration-500 sm:p-8 ${
+                className={`w-full rounded-3xl border border-white/80 bg-white/85 p-6 sm:p-8 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.18)] backdrop-blur-md transition-all duration-500 ${
                   isSuccess
                     ? "translate-y-[-8px] scale-[0.98] opacity-100"
                     : "translate-y-0 scale-100 opacity-100"
@@ -152,13 +170,26 @@ export default function LoginForm() {
                       </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      {errors.username && (
-                        <div className="flex items-start gap-2.5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                          <span className="leading-relaxed">{errors.username}</span>
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative">
+
+                      {/* POPUP ERROR TOOLTIP (Melayang dengan Panah) */}
+                      <div
+                        className={`absolute z-50 bottom-[95px] left-0 mb-3 transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left ${
+                          showErrorPopup ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-3 pointer-events-none"
+                        }`}
+                      >
+                        <div className="relative bg-red-600/95 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-[0_10px_25px_-5px_rgba(220,38,38,0.5)] flex items-start gap-3 border border-red-500/50">
+                          <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-200" />
+                          <span className="text-sm font-semibold leading-tight tracking-wide">
+                            {errors.username === 'These credentials do not match our records.'
+                              ? 'Username atau password tidak sesuai.'
+                              : errors.username}
+                          </span>
+
+                          {/* Segitiga Panah Menunjuk ke Bawah */}
+                          <div className="absolute top-full left-6 -mt-[1px] border-[8px] border-transparent border-t-red-600/95 drop-shadow-md"></div>
                         </div>
-                      )}
+                      </div>
 
                       <div className="space-y-2">
                         <label className="ml-1 text-xs font-bold tracking-[0.16em] text-slate-600">
@@ -176,7 +207,9 @@ export default function LoginForm() {
                             required
                             disabled={processing}
                             placeholder="Masukkan username"
-                            className="h-12 w-full rounded-xl border border-slate-200/80 bg-slate-50/70 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`h-12 w-full rounded-xl border bg-slate-50/70 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:bg-white focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 ${
+                              errors.username ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-blue-600/10"
+                            }`}
                           />
                         </div>
                       </div>
@@ -186,7 +219,7 @@ export default function LoginForm() {
                           <label className="text-xs font-bold tracking-[0.16em] text-slate-600">
                             Password
                           </label>
-                          <a href="/forgot-password" className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                          <a href="/forgot-password" className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors focus:outline-none focus:underline">
                             Lupa Password?
                           </a>
                         </div>
@@ -202,7 +235,9 @@ export default function LoginForm() {
                             required
                             disabled={processing}
                             placeholder="••••••••"
-                            className="h-12 w-full rounded-xl border border-slate-200/80 bg-slate-50/70 pl-11 pr-12 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`h-12 w-full rounded-xl border bg-slate-50/70 pl-11 pr-12 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:bg-white focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 ${
+                              errors.username ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-blue-600/10"
+                            }`}
                           />
                           <button
                             type="button"

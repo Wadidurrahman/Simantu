@@ -1,19 +1,35 @@
-import InputError from '@/Components/InputError';
+import { useState, useEffect } from 'react';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm, Link } from '@inertiajs/react';
+import { XCircle, AlertCircle } from 'lucide-react';
 
 export default function ForgotPassword({ status }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, clearErrors } = useForm({
         nip: '',
     });
 
+    const [showErrorPopup, setShowErrorPopup] = useState(false);
+
+    useEffect(() => {
+        if (errors.nip) {
+            setShowErrorPopup(true);
+            const timer = setTimeout(() => {
+                setShowErrorPopup(false);
+                clearErrors('nip');
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [errors.nip, clearErrors]);
+
     const submit = (e) => {
         e.preventDefault();
+        clearErrors();
+        setShowErrorPopup(false);
         post(route('password.email'));
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative bg-slate-50 overflow-hidden font-sans">
+        <div className="h-screen w-screen flex items-center justify-center p-4 relative bg-slate-50 overflow-hidden font-sans">
             <Head title="Lupa Password - SIMANTU" />
 
             {/* Background Jaring-jaring Abstrak (Geometric Mesh) */}
@@ -24,14 +40,14 @@ export default function ForgotPassword({ status }) {
                 }}
             ></div>
 
-            {/* Aksen Gradient Halus (Tidak Lebay) */}
+            {/* Aksen Gradient Halus */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
                 <div className="absolute -top-[20%] -left-[10%] w-[500px] h-[500px] rounded-full bg-blue-400/20 blur-[100px]"></div>
                 <div className="absolute -bottom-[20%] -right-[10%] w-[500px] h-[500px] rounded-full bg-indigo-400/20 blur-[100px]"></div>
             </div>
 
             {/* Main Card */}
-            <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200 overflow-hidden">
+            <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200 overflow-hidden h-fit">
 
                 {/* Garis Tegas Identitas (Biru BPS) */}
                 <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 to-blue-400"></div>
@@ -52,21 +68,37 @@ export default function ForgotPassword({ status }) {
 
                     {/* Status Alert */}
                     {status && (
-                        <div className="mb-6 font-medium text-sm text-emerald-800 bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex items-start gap-3">
-                            <svg className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div className="mb-6 font-medium text-sm text-emerald-800 bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex items-start gap-3 transition-all duration-300">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
                             <p>{status}</p>
                         </div>
                     )}
 
-                    <form onSubmit={submit}>
-                        <div className="mb-8">
+                    <form onSubmit={submit} className="relative">
+
+                        {/* POPUP ERROR TOOLTIP MELAYANG */}
+                        <div
+                            className={`absolute z-50 bottom-[125px] left-0 mb-2 transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left w-full ${
+                            showErrorPopup ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-3 pointer-events-none"
+                            }`}
+                        >
+                            <div className="relative bg-red-600/95 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-[0_10px_25px_-5px_rgba(220,38,38,0.5)] flex items-start gap-3 border border-red-500/50">
+                                <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-200" />
+                                <span className="text-sm font-semibold leading-tight tracking-wide">
+                                    {errors.nip}
+                                </span>
+                                {/* Segitiga Panah Menunjuk ke Bawah */}
+                                <div className="absolute top-full left-6 -mt-[1px] border-[8px] border-transparent border-t-red-600/95 drop-shadow-md"></div>
+                            </div>
+                        </div>
+
+                        <div className="mb-8 relative">
                             <label htmlFor="nip" className="block text-sm font-bold text-gray-700 mb-2">
                                 Nomor Induk Pegawai (NIP)
                             </label>
-                            <div className="relative">
+                            <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    {/* Icon User/Badge */}
-                                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                                     </svg>
                                 </div>
@@ -75,19 +107,21 @@ export default function ForgotPassword({ status }) {
                                     type="text"
                                     name="nip"
                                     value={data.nip}
-                                    className="block w-full pl-11 pr-4 py-3 rounded-xl border-gray-300 shadow-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all text-gray-900 font-medium bg-gray-50 focus:bg-white"
+                                    className={`block w-full pl-11 pr-4 py-3 rounded-xl border shadow-sm outline-none transition-all duration-200 text-sm font-semibold text-slate-800 disabled:opacity-50 ${
+                                        errors.nip ? "border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 bg-slate-50/70 focus:bg-white"
+                                    }`}
                                     isFocused={true}
                                     onChange={(e) => setData('nip', e.target.value)}
                                     placeholder="Ketik NIP Anda..."
+                                    disabled={processing}
                                 />
                             </div>
-                            <InputError message={errors.nip} className="mt-2" />
                         </div>
 
                         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
                             <Link
                                 href={route('login')}
-                                className="text-sm text-gray-500 hover:text-blue-700 font-bold transition-colors flex items-center gap-1.5 w-full sm:w-auto justify-center group"
+                                className="text-sm text-gray-500 hover:text-blue-700 font-bold transition-colors flex items-center gap-1.5 w-full sm:w-auto justify-center group outline-none focus:text-blue-700"
                             >
                                 <svg className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                                 Kembali
@@ -95,10 +129,15 @@ export default function ForgotPassword({ status }) {
 
                             <button
                                 type="submit"
-                                className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 bg-blue-700 border border-transparent rounded-xl font-bold text-xs text-white uppercase tracking-wider hover:bg-blue-800 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50"
+                                className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 bg-blue-700 border border-transparent rounded-xl font-bold text-xs text-white uppercase tracking-wider hover:bg-blue-800 active:bg-blue-900 focus:outline-none focus:ring-4 focus:ring-blue-600/20 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50"
                                 disabled={processing}
                             >
-                                {processing ? 'Memproses...' : 'Kirim Link Reset'}
+                                {processing ? (
+                                    <>
+                                        <AlertCircle className="h-4 w-4 mr-2 animate-pulse" />
+                                        Mencari...
+                                    </>
+                                ) : 'Kirim Link Reset'}
                             </button>
                         </div>
                     </form>
