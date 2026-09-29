@@ -16,7 +16,6 @@ import {
 export default function LoginForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // State untuk mengontrol kemunculan popup error melayang
   const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   const { data, setData, post, processing, errors, clearErrors } = useForm({
@@ -51,10 +50,7 @@ export default function LoginForm() {
   return (
     <>
       <Head title="Log in" />
-
-      {/* Gunakan h-screen dan overflow-hidden secara ketat pada elemen terluar untuk mencegah scroll */}
       <main className="relative h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-900 selection:bg-blue-600 selection:text-white flex items-center justify-center">
-        {/* Background Effects */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div
             className="absolute inset-0 scale-[1.01] bg-cover bg-center bg-no-repeat animate-[slowZoom_25s_ease-in-out_infinite_alternate]"
