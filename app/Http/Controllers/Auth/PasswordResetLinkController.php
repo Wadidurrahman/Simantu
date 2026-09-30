@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User; // Tambahkan import Model User
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -13,9 +13,6 @@ use Inertia\Response;
 
 class PasswordResetLinkController extends Controller
 {
-    /**
-     * Display the password reset link request view.
-     */
     public function create(): Response
     {
         return Inertia::render('Auth/ForgotPassword', [
@@ -23,27 +20,36 @@ class PasswordResetLinkController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming password reset link request via NIP.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
-        // 1. Ubah validasi menjadi NIP, pastikan ada di database (nip_baru)
         $request->validate([
-            'nip' => 'required|string|exists:users,nip_baru',
+            'login' => 'required|string',
         ], [
-            'nip.exists' => 'NIP tidak ditemukan di dalam sistem.',
+            'login.required' => 'Masukkan NIP atau Email Anda.',
         ]);
 
-        // 2. Cari user berdasarkan NIP
-        $user = User::where('nip_baru', $request->nip)->first();
+        $input = $request->login;
 
-        // 3. Pastikan user tersebut memiliki email di sistem
-        if (! $user || ! $user->email) {
+        // 1. Cek apakah yang diketik adalah Email (Mitra) atau NIP (Pegawai)
+        if (filter_var($input, FILTER_VALIDATE_EMAIL)) {
+            $user = User::where('email', $input)->first();
+        } else {
+            $user = User::where('nip_baru', $input)
+                        ->orWhere('nip_lama', $input)
+                        ->first();
+        }
+
+        // 2. Jika user tidak ditemukan
+        if (! $user) {
             throw ValidationException::withMessages([
-                'nip' => ['Akun ini tidak memiliki email yang valid untuk pemulihan kata sandi.'],
+                'login' => ['NIP atau Email tidak ditemukan di dalam sistem.'],
+            ]);
+        }
+
+        // 3. Jika user (Pegawai) ditemukan tapi emailnya kosong
+        if (! $user->email) {
+            throw ValidationException::withMessages([
+                'login' => ['Akun Anda tidak memiliki email yang terdaftar. Hubungi Admin.'],
             ]);
         }
 
@@ -53,11 +59,11 @@ class PasswordResetLinkController extends Controller
         );
 
         if ($status == Password::RESET_LINK_SENT) {
-            return back()->with('status', 'Tautan pemulihan kata sandi telah dikirim ke Email resmi BPS Anda.');
+            return back()->with('status', 'Tautan pemulihan kata sandi telah dikirim ke email Anda.');
         }
 
         throw ValidationException::withMessages([
-            'nip' => [trans($status)],
+            'login' => [trans($status)],
         ]);
     }
 }

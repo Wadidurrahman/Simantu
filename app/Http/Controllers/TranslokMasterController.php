@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\TranslokMaster;
+use App\Models\Kegiatan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -13,12 +14,19 @@ class TranslokMasterController extends Controller
     {
         $tahun = session('tahun', date('Y'));
 
-        $giat = TranslokMaster::where('thn', $tahun)
+        $giat = TranslokMaster::with('kegiatan')
+            ->where('tahun', $tahun)
             ->orderBy('kd_translok')
+            ->get();
+
+        $masterKegiatan = Kegiatan::where('tahun', $tahun)
+            ->where('is_active', true)
+            ->orderBy('kd_giat')
             ->get();
 
         return Inertia::render('Translok/Master/Index', [
             'giat' => $giat,
+            'masterKegiatan' => $masterKegiatan,
             'tahun' => $tahun
         ]);
     }
@@ -26,33 +34,26 @@ class TranslokMasterController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'translok' => ['required', 'string', 'max:255'],
-            'vol_a'    => ['required', 'numeric', 'min:0'],
-            'sat'      => ['required', 'string', 'max:50'],
-            'rate'     => ['required', 'numeric', 'min:0'],
+            'kegiatan_id' => ['required', 'exists:kegiatans,id'],
+            'vol_awal'    => ['required', 'numeric', 'min:0'],
+            'satuan'      => ['required', 'string', 'max:50'],
+            'rate'        => ['required', 'numeric', 'min:0'],
         ]);
 
         $tahun = session('tahun', date('Y'));
 
         DB::transaction(function () use ($validated, $tahun) {
-            $maxKd = TranslokMaster::where('thn', $tahun)->lockForUpdate()->max('kd_translok');
+            $maxKd = TranslokMaster::where('tahun', $tahun)->lockForUpdate()->max('kd_translok');
             $newKd = str_pad(($maxKd ? (int)$maxKd + 1 : 1), 3, '0', STR_PAD_LEFT);
-            $idTranslok = $tahun . $newKd;
-
-            $jml_a = $validated['vol_a'] * $validated['rate'];
 
             TranslokMaster::create([
-                'id_translok' => $idTranslok,
-                'thn'         => $tahun,
+                'tahun'       => $tahun,
+                'kegiatan_id' => $validated['kegiatan_id'],
                 'kd_translok' => $newKd,
-                'translok'    => $validated['translok'],
-                'vol_a'       => $validated['vol_a'],
-                'sat'         => $validated['sat'],
+                'vol_awal'    => $validated['vol_awal'],
+                'satuan'      => $validated['satuan'],
                 'rate'        => $validated['rate'],
-                'jml_a'       => $jml_a,
-                'r_v'         => 0,
-                'sisa_v'      => $validated['vol_a'],
-                'sisa_a'      => $jml_a,
+
             ]);
         });
 
@@ -62,27 +63,23 @@ class TranslokMasterController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'vol_a' => ['required', 'numeric', 'min:0'],
-            'rate'  => ['required', 'numeric', 'min:0'],
+            'kegiatan_id' => ['required', 'exists:kegiatans,id'],
+            'vol_awal'    => ['required', 'numeric', 'min:0'],
+            'satuan'      => ['required', 'string', 'max:50'],
+            'rate'        => ['required', 'numeric', 'min:0'],
         ]);
 
         $translok = TranslokMaster::findOrFail($id);
 
-        $sisa_v = $validated['vol_a'] - $translok->r_v;
 
-        if ($sisa_v < 0) {
-            return back()->withErrors(['vol_a' => 'Volume awal tidak boleh lebih kecil dari volume yang sudah terealisasi.']);
+        if ($validated['vol_awal'] < $translok->realisasi_vol) {
+            return back()->withErrors(['vol_awal' => 'Volume awal tidak boleh lebih kecil dari volume yang sudah terealisasi.']);
         }
-
-        $jml_a = $validated['vol_a'] * $validated['rate'];
-        $sisa_a = $sisa_v * $validated['rate'];
-
         $translok->update([
-            'vol_a'  => $validated['vol_a'],
-            'rate'   => $validated['rate'],
-            'jml_a'  => $jml_a,
-            'sisa_v' => $sisa_v,
-            'sisa_a' => $sisa_a,
+            'kegiatan_id' => $validated['kegiatan_id'],
+            'vol_awal'    => $validated['vol_awal'],
+            'satuan'      => $validated['satuan'],
+            'rate'        => $validated['rate'],
         ]);
 
         return redirect()->back()->with('success', 'Data Master Translok berhasil diperbarui.');
@@ -92,7 +89,7 @@ class TranslokMasterController extends Controller
     {
         $translok = TranslokMaster::findOrFail($id);
 
-        if ($translok->r_v > 0) {
+        if ($translok->realisasi_vol > 0) {
             return back()->with('error', 'Data tidak dapat dihapus karena sudah memiliki realisasi.');
         }
 
