@@ -14,6 +14,7 @@ export default function AuthenticatedLayout({ children }) {
 
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
+                setIsCollapsed={setIsSidebarCollapsed}
                 isMobileOpen={isMobileSidebarOpen}
                 setIsMobileOpen={setIsMobileSidebarOpen}
             />
