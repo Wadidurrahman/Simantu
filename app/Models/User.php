@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
-    protected $table = 'organik';
+    protected $table = 'users';
     protected $primaryKey = 'nip_baru';
     public $incrementing = false;
     protected $keyType = 'string';
@@ -18,7 +18,7 @@ class User extends Authenticatable
     protected $fillable = [
         'nip_lama',
         'nip_baru',
-        'nama',
+        'name',
         'jabatan',
         'gol',
         'jk',

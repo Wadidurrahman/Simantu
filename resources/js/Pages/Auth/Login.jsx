@@ -19,13 +19,14 @@ export default function LoginForm() {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   const { data, setData, post, processing, errors, clearErrors } = useForm({
-    username: '',
+    login: '',
     password: '',
+    remember: false,
   });
 
   // Pantau jika ada error, tampilkan popup, lalu hilangkan otomatis setelah 5 detik
   useEffect(() => {
-    if (errors.username) {
+    if (errors.login) {
       setShowErrorPopup(true);
       const timer = setTimeout(() => {
         setShowErrorPopup(false);
@@ -189,22 +190,25 @@ export default function LoginForm() {
 
                       <div className="space-y-2">
                         <label className="ml-1 text-xs font-bold tracking-[0.16em] text-slate-600">
-                          Username
+                          Username atau Email
                         </label>
                         <div className="group relative">
                           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors duration-200 group-focus-within:text-blue-600">
                             <User className="h-5 w-5" />
                           </div>
                           <input
+                            id="login"
                             type="text"
-                            name="username"
-                            value={data.username}
-                            onChange={(e) => setData("username", e.target.value)}
+                            name="login"
+                            value={data.login || ''}
+                            autoComplete="username"
+                            // isFocused={true}
+                            onChange={(e) => setData("login", e.target.value)}
                             required
                             disabled={processing}
-                            placeholder="Masukkan username"
+                            placeholder="Masukkan username atau email"
                             className={`h-12 w-full rounded-xl border bg-slate-50/70 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:bg-white focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 ${
-                              errors.username ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-blue-600/10"
+                              errors.login ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-blue-600/10"
                             }`}
                           />
                         </div>
@@ -226,7 +230,7 @@ export default function LoginForm() {
                           <input
                             type={showPassword ? "text" : "password"}
                             name="password"
-                            value={data.password}
+                            value={data.password || ''}
                             onChange={(e) => setData("password", e.target.value)}
                             required
                             disabled={processing}
