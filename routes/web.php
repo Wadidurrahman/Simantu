@@ -17,9 +17,7 @@ Route::get('/', function () {
 
 Route::middleware('auth')->group(function () {
 
-    // Rute Pembaruan Keamanan (Force Change Password)
-    Route::get('/ganti-password-default', [ProfileController::class, 'forceChangePassword'])->name('password.change');
-    Route::post('/ganti-password-default', [ProfileController::class, 'forceUpdatePassword'])->name('password.change.update');
+    Route::put('/force-password-update', [ProfileController::class, 'forceUpdatePassword'])->name('password.force.update');
 
     Route::middleware(['verified', 'force.password'])->group(function () {
 

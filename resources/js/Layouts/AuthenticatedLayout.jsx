@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import Sidebar from '../Components/Layout/Sidebar';
 import Topbar from '../Components/Layout/Topbar';
+import ForcePasswordModal from '@/Components/ForcePasswordModal';
 
 export default function AuthenticatedLayout({ children }) {
     const { auth } = usePage().props;
@@ -33,6 +34,11 @@ export default function AuthenticatedLayout({ children }) {
                 </main>
 
             </div>
+            <main>{children}</main>
+            {user?.must_change_password === 1 && (
+                <ForcePasswordModal show={true} />
+            )}
         </div>
     );
 }
+

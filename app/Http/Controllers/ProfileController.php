@@ -60,4 +60,29 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    /**
+     * Menampilkan halaman paksa ganti password untuk pengguna baru/mitra.
+     */
+    public function forceChangePassword(Request $request): Response
+    {
+        return Inertia::render('Auth/ForceChangePassword');
+    }
+
+    /**
+     * Memperbarui password secara paksa dan menghapus flag must_change_password.
+     */
+    public function forceUpdatePassword(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+        ]);
+
+        $request->user()->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'must_change_password' => 0,
+        ]);
+
+        return redirect()->route('dashboard');
+    }
 }
