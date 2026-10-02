@@ -19,7 +19,6 @@ const navigationItems = [
         ]
     },
     {
-        // Menu Khusus Mitra
         name: 'Tugas Saya', icon: ClipboardList, roles: ['mitra'],
         children: [
             { name: 'Daftar Tugas', routeName: 'mitra.tugas', roles: ['mitra'] },
@@ -42,7 +41,6 @@ const navigationItems = [
         ]
     },
     {
-        // Menu Khusus Mitra
         name: 'Honorarium Saya', icon: Wallet, roles: ['mitra'],
         children: [
             { name: 'Riwayat Honor', routeName: 'mitra.honor', roles: ['mitra'] },
@@ -65,10 +63,7 @@ const navigationItems = [
 ];
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) {
-    // 2. Ambil data user dari session Inertia
     const { auth } = usePage().props;
-    // Asumsi: Anda sudah menggunakan kolom 'role' dengan value 'admin', 'pegawai', 'mitra'
-    // Jika masih pakai angka level lama, ubah const userRole = auth.user.level == 1 ? 'admin' : (auth.user.level == 2 ? 'pegawai' : 'mitra');
     const userRole = auth.user?.role || 'pegawai';
 
     const [openMenus, setOpenMenus] = useState({});
@@ -76,7 +71,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
     useEffect(() => {
         const initialOpenState = {};
         navigationItems.forEach((item, index) => {
-            // Lewati jika role user tidak diizinkan melihat menu ini
             if (!item.roles.includes(userRole)) return;
 
             if (item.children) {
@@ -95,20 +89,16 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
 
     const renderNavigation = (isMobile = false) => {
         const collapsedState = isMobile ? false : isCollapsed;
-
-        // 3. Filter Navigasi Utama berdasarkan Role
         const filteredNavItems = navigationItems.filter(item => item.roles.includes(userRole));
 
         return (
             <ul className={`space-y-1.5 py-5 relative z-10 ${collapsedState ? 'px-2.5' : 'pl-3 pr-0'}`}>
                 {filteredNavItems.map((item, index) => {
 
-                    // 4. Filter Submenu berdasarkan Role
                     const visibleChildren = item.children
                         ? item.children.filter(child => child.roles.includes(userRole))
                         : null;
 
-                    // Jika menu punya submenu, tapi setelah difilter kosong (misal pegawai lihat menu yang submenunya admin semua), sembunyikan parent-nya
                     if (item.children && visibleChildren.length === 0) return null;
 
                     const hasActiveChild = visibleChildren

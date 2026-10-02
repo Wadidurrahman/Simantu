@@ -5,14 +5,32 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index(Request $request): Response
     {
+
+        $user = $request->user();
         $year = now()->year;
         $month = now()->month;
+
+        if ($user->role === 'mitra') {
+            return Inertia::render('Dashboard', [
+                'kpi' => [
+                    'kegiatan_aktif' => 0,
+                    'kegiatan_baru_bulan_ini' => 0,
+                    'translok_berjalan' => 0,
+                    'translok_pending' => 0,
+                    'realisasi_honor' => 0,
+                    'mitra_terlibat' => 0,
+                ],
+                'kegiatanTerkini' => [],
+                'serapanAnggaran' => [],
+            ]);
+        }
 
         return Inertia::render('Dashboard', [
             'kpi' => $this->getKpiMetrics($year, $month),

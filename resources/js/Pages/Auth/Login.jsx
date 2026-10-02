@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Head, useForm } from "@inertiajs/react";
 import {
   Eye,
@@ -16,7 +16,6 @@ import {
 export default function LoginForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   const { data, setData, post, processing, errors, clearErrors } = useForm({
     login: '',
@@ -24,22 +23,9 @@ export default function LoginForm() {
     remember: false,
   });
 
-  // Pantau jika ada error, tampilkan popup, lalu hilangkan otomatis setelah 5 detik
-  useEffect(() => {
-    if (errors.login) {
-      setShowErrorPopup(true);
-      const timer = setTimeout(() => {
-        setShowErrorPopup(false);
-        clearErrors();
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [errors.username, clearErrors]);
-
   const handleSubmit = (e) => {
     e.preventDefault();
     clearErrors();
-    setShowErrorPopup(false);
 
     post('/login', {
       onSuccess: () => {
@@ -61,7 +47,6 @@ export default function LoginForm() {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-100/50 via-transparent to-transparent lg:bg-gradient-to-b lg:from-white/30 lg:via-transparent lg:to-slate-900/5" />
         </div>
 
-        {/* HAPUS overflow-y-auto di sini agar konten tidak pernah bisa di-scroll */}
         <div className="relative z-10 flex h-full w-full items-center justify-center px-4 sm:px-8 lg:px-10">
           <div
             className={`flex flex-col lg:flex-row w-full max-w-6xl items-center justify-between gap-10 lg:gap-16 xl:gap-24 transition-all duration-700 ${
@@ -168,27 +153,8 @@ export default function LoginForm() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative">
-
-                      {/* POPUP ERROR TOOLTIP (Melayang dengan Panah) */}
-                      <div
-                        className={`absolute z-50 bottom-[95px] left-0 mb-3 transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left ${
-                          showErrorPopup ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-3 pointer-events-none"
-                        }`}
-                      >
-                        <div className="relative bg-red-600/95 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-[0_10px_25px_-5px_rgba(220,38,38,0.5)] flex items-start gap-3 border border-red-500/50">
-                          <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-200" />
-                          <span className="text-sm font-semibold leading-tight tracking-wide">
-                            {errors.username === 'These credentials do not match our records.'
-                              ? 'Username atau password tidak sesuai.'
-                              : errors.username}
-                          </span>
-
-                          {/* Segitiga Panah Menunjuk ke Bawah */}
-                          <div className="absolute top-full left-6 -mt-[1px] border-[8px] border-transparent border-t-red-600/95 drop-shadow-md"></div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
+                      {/* INPUT LOGIN / USERNAME */}
+                      <div className="space-y-1">
                         <label className="ml-1 text-xs font-bold tracking-[0.16em] text-slate-600">
                           Username atau Email
                         </label>
@@ -202,7 +168,6 @@ export default function LoginForm() {
                             name="login"
                             value={data.login || ''}
                             autoComplete="username"
-                            // isFocused={true}
                             onChange={(e) => setData("login", e.target.value)}
                             required
                             disabled={processing}
@@ -212,9 +177,21 @@ export default function LoginForm() {
                             }`}
                           />
                         </div>
+                        {/* INLINE ERROR UNTUK LOGIN */}
+                        {errors.login && (
+                          <div className="flex items-center gap-1.5 ml-1 mt-1 text-red-500">
+                            <XCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span className="text-xs font-semibold">
+                              {errors.login === 'These credentials do not match our records.' || errors.login === 'auth.failed'
+                                ? 'Username atau password tidak sesuai.'
+                                : errors.login}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="space-y-2">
+                      {/* INPUT PASSWORD */}
+                      <div className="space-y-1">
                         <div className="flex items-center justify-between ml-1 mb-1">
                           <label className="text-xs font-bold tracking-[0.16em] text-slate-600">
                             Password
@@ -236,7 +213,7 @@ export default function LoginForm() {
                             disabled={processing}
                             placeholder="••••••••"
                             className={`h-12 w-full rounded-xl border bg-slate-50/70 pl-11 pr-12 text-sm font-semibold text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:bg-white focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 ${
-                              errors.username ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-blue-600/10"
+                              errors.password || errors.login ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 bg-red-50/30" : "border-slate-200/80 focus:border-blue-600 focus:ring-blue-600/10"
                             }`}
                           />
                           <button
@@ -252,6 +229,13 @@ export default function LoginForm() {
                             )}
                           </button>
                         </div>
+                        {/* INLINE ERROR UNTUK PASSWORD */}
+                        {errors.password && (
+                          <div className="flex items-center gap-1.5 ml-1 mt-1 text-red-500">
+                            <XCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span className="text-xs font-semibold">{errors.password}</span>
+                          </div>
+                        )}
                       </div>
 
                       <button
