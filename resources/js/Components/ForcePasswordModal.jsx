@@ -13,7 +13,7 @@ export default function ForcePasswordModal({ show }) {
 
     const submit = (e) => {
         e.preventDefault();
-        put(route('password.change.update'));
+        put(route('password.force.update'));
     };
 
     return (
@@ -21,7 +21,7 @@ export default function ForcePasswordModal({ show }) {
             <div className="p-6">
                 <div className="flex items-center justify-center mb-4">
                     <div className="bg-red-100 p-3 rounded-full">
-                        {/* Icon Peringatan */}
+                        {/* Ikon Peringatan/Kunci */}
                         <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -41,7 +41,6 @@ export default function ForcePasswordModal({ show }) {
                         <TextInput
                             id="password"
                             type="password"
-                            name="password"
                             value={data.password}
                             className="mt-1 block w-full"
                             isFocused={true}
@@ -55,7 +54,6 @@ export default function ForcePasswordModal({ show }) {
                         <TextInput
                             id="password_confirmation"
                             type="password"
-                            name="password_confirmation"
                             value={data.password_confirmation}
                             className="mt-1 block w-full"
                             onChange={(e) => setData('password_confirmation', e.target.value)}

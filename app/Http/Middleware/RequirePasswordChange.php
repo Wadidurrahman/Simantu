@@ -12,8 +12,15 @@ class RequirePasswordChange
     {
         $user = $request->user();
 
+        // Jika user masuk dan wajib ganti password
         if ($user && $user->must_change_password == 1) {
-            $allowedRoutes = ['dashboard', 'password.change.update', 'logout'];
+
+            // Izinkan akses HANYA ke rute dashboard (untuk menampilkan Modal), eksekusi update, dan logout
+            $allowedRoutes = [
+                'dashboard',
+                'password.force.update',
+                'logout'
+            ];
 
             if (!$request->routeIs($allowedRoutes)) {
                 return redirect()->route('dashboard');

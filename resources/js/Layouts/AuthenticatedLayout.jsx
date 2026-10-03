@@ -1,44 +1,39 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
-import Sidebar from '../Components/Layout/Sidebar';
-import Topbar from '../Components/Layout/Topbar';
+import Sidebar from '@/Components/Layout/Sidebar';
+import Topbar from '@/Components/Layout/Topbar';
 import ForcePasswordModal from '@/Components/ForcePasswordModal';
 
-export default function AuthenticatedLayout({ children }) {
+export default function AuthenticatedLayout({ header, children }) {
     const { auth } = usePage().props;
-
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
+        <div className="min-h-screen bg-slate-50 flex">
+            {/* Tambahan user prop agar Sidebar mengenali role mitra/pegawai */}
+            <Sidebar user={auth?.user} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-            <Sidebar
-                isCollapsed={isSidebarCollapsed}
-                setIsCollapsed={setIsSidebarCollapsed}
-                isMobileOpen={isMobileSidebarOpen}
-                setIsMobileOpen={setIsMobileSidebarOpen}
-            />
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {/* Tambahan user prop agar Topbar mengenali data user */}
+                <Topbar user={auth?.user} onMenuClick={() => setIsSidebarOpen(true)} />
 
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300">
+                {header && (
+                    <header className="bg-white shadow-sm border-b border-slate-200 z-10">
+                        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+                            {header}
+                        </div>
+                    </header>
+                )}
 
-                <Topbar
-                    user={auth.user}
-                    isCollapsed={isSidebarCollapsed}
-                    setIsCollapsed={setIsSidebarCollapsed}
-                    setIsMobileOpen={setIsMobileSidebarOpen}
-                />
-
-                <main className="flex-1 overflow-y-auto bg-slate-50/50 relative">
+                <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8">
                     {children}
                 </main>
-
             </div>
-            <main>{children}</main>
-            {user?.must_change_password === 1 && (
+
+            {/* Modal Ganti Password Paksa */}
+            {auth?.user?.must_change_password === 1 && (
                 <ForcePasswordModal show={true} />
             )}
         </div>
     );
 }
-

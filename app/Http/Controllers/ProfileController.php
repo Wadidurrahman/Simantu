@@ -8,14 +8,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
     public function edit(Request $request): Response
     {
         return Inertia::render('Profile/Edit', [
@@ -24,9 +23,6 @@ class ProfileController extends Controller
         ]);
     }
 
-    /**
-     * Update the user's profile information.
-     */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $request->user()->fill($request->validated());
@@ -40,9 +36,6 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit');
     }
 
-    /**
-     * Delete the user's account.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         $request->validate([
@@ -61,28 +54,17 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-    /**
-     * Menampilkan halaman paksa ganti password untuk pengguna baru/mitra.
-     */
-    public function forceChangePassword(Request $request): Response
-    {
-        return Inertia::render('Auth/ForceChangePassword');
-    }
-
-    /**
-     * Memperbarui password secara paksa dan menghapus flag must_change_password.
-     */
-    public function forceUpdatePassword(\Illuminate\Http\Request $request)
+    public function forceUpdatePassword(Request $request): RedirectResponse
     {
         $request->validate([
-            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         $request->user()->update([
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'password' => Hash::make($request->password),
             'must_change_password' => 0,
         ]);
 
-        return redirect()->route('dashboard');
+        return Redirect::route('dashboard');
     }
 }

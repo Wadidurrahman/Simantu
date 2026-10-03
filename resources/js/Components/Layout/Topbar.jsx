@@ -5,6 +5,12 @@ import { Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, UserCircle, LogOut, M
 export default function Topbar({ user, setIsMobileOpen }) {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+    // [PENGAMANAN DATA USER] - Variabel ini memastikan tidak ada error "undefined" untuk Mitra/Pegawai
+    const displayName = user?.name || user?.nama || 'Pengguna';
+    const displayRole = user?.role === 'mitra' ? 'Mitra BPS' : (user?.role === 'admin' || user?.level === 'admin' ? 'Administrator' : 'Pegawai BPS');
+    const displayId = user?.nip_baru || user?.username || '-';
+    const initial = displayName.charAt(0).toUpperCase();
+
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -83,14 +89,14 @@ export default function Topbar({ user, setIsMobileOpen }) {
                         >
                             <div className="text-right hidden sm:block">
                                 <p className="text-[13px] font-semibold text-slate-800 leading-none group-hover:text-blue-600 transition-colors duration-150 ease-out">
-                                    {user.nama}
+                                    {displayName}
                                 </p>
                                 <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-1.5">
-                                    {user.level === 'admin' ? 'Administrator' : 'Pegawai'}
+                                    {displayRole}
                                 </p>
                             </div>
                             <div className="h-9 w-9 rounded-full bg-slate-100 text-blue-700 flex items-center justify-center font-semibold border border-slate-200 transition-colors duration-150 ease-out group-hover:bg-blue-50 shrink-0">
-                                {user.nama.charAt(0)}
+                                {initial}
                             </div>
                             <ChevronDown
                                 className={`hidden sm:block w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ease-in-out motion-reduce:transition-none group-hover:text-blue-600 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
@@ -105,8 +111,8 @@ export default function Topbar({ user, setIsMobileOpen }) {
                                     style={{ animation: 'dropdownEnter 180ms cubic-bezier(0.4, 0, 0.2, 1) forwards' }}
                                 >
                                     <div className="px-4 py-3 border-b border-slate-100 sm:hidden">
-                                        <p className="text-sm font-semibold text-slate-800">{user.nama}</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">{user.nip_baru}</p>
+                                        <p className="text-sm font-semibold text-slate-800">{displayName}</p>
+                                        <p className="text-xs text-slate-500 mt-0.5">{displayId}</p>
                                     </div>
                                     <Link href={route('profile.edit')} className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors duration-150 ease-out">
                                         <UserCircle className="w-4 h-4 mr-3 text-slate-400" /> Profil Saya
