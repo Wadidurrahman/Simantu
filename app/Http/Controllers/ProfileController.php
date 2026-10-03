@@ -60,10 +60,10 @@ class ProfileController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $request->user()->update([
-            'password' => Hash::make($request->password),
-            'must_change_password' => 0,
-        ]);
+        $user = $request->user();
+        $user->password = Hash::make($request->password);
+        $user->must_change_password = 0;
+        $user->save();
 
         return Redirect::route('dashboard');
     }

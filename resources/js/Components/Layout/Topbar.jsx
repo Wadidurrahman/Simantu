@@ -5,7 +5,6 @@ import { Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, UserCircle, LogOut, M
 export default function Topbar({ user, setIsMobileOpen }) {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
-    // [PENGAMANAN DATA USER] - Variabel ini memastikan tidak ada error "undefined" untuk Mitra/Pegawai
     const displayName = user?.name || user?.nama || 'Pengguna';
     const displayRole = user?.role === 'mitra' ? 'Mitra BPS' : (user?.role === 'admin' || user?.level === 'admin' ? 'Administrator' : 'Pegawai BPS');
     const displayId = user?.nip_baru || user?.username || '-';
@@ -49,7 +48,6 @@ export default function Topbar({ user, setIsMobileOpen }) {
                 }
             `}</style>
             <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0 sticky top-0 z-30 shadow-sm">
-
                 <div className="flex items-center">
                     <button
                         onClick={() => setIsMobileOpen(true)}
@@ -58,9 +56,7 @@ export default function Topbar({ user, setIsMobileOpen }) {
                         <Menu className="h-5 w-5" />
                     </button>
                 </div>
-
                 <div className="flex items-center gap-2 sm:gap-4">
-
                     <button
                         onClick={toggleFullscreen}
                         className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-md transition-colors duration-150 ease-out focus:outline-none"
@@ -68,9 +64,7 @@ export default function Topbar({ user, setIsMobileOpen }) {
                     >
                         {isFullscreen ? <Minimize className="w-[18px] h-[18px]" strokeWidth={2.5} /> : <Maximize className="w-[18px] h-[18px]" strokeWidth={2.5} />}
                     </button>
-
                     <div className="hidden lg:block h-7 w-px bg-slate-200"></div>
-
                     <div className="hidden lg:flex flex-col items-end justify-center text-right px-1">
                         <span className="text-[13px] font-semibold text-slate-800 leading-none mb-1 tracking-tight">
                             {formattedTime} <span className="text-[10px] text-slate-500 font-medium ml-0.5">WIB</span>
@@ -79,10 +73,9 @@ export default function Topbar({ user, setIsMobileOpen }) {
                             {formattedDate}
                         </span>
                     </div>
-
                     <div className="hidden sm:block h-7 w-px bg-slate-200"></div>
 
-                    <div className="relative">
+                    <div className={`relative ${user?.must_change_password === 1 ? 'pointer-events-none' : ''}`}>
                         <button
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                             className="flex items-center rounded-full focus:outline-none transition-colors duration-150 ease-out gap-3 group px-1 py-1 hover:bg-slate-50"
@@ -102,7 +95,6 @@ export default function Topbar({ user, setIsMobileOpen }) {
                                 className={`hidden sm:block w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ease-in-out motion-reduce:transition-none group-hover:text-blue-600 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
                             />
                         </button>
-
                         {isProfileMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
@@ -125,7 +117,6 @@ export default function Topbar({ user, setIsMobileOpen }) {
                             </>
                         )}
                     </div>
-
                 </div>
             </header>
         </>
