@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
-use App\Models\User; // Tambahkan ini untuk memanggil Model User
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -54,9 +54,9 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-    public function forceUpdatePassword(Request $request): RedirectResponse
+    public function forceUpdatePassword(Request $request)
     {
-        // 1. Validasi Keamanan Ketat
+        // 1. Validasi Standar dengan Lokalisasi Bahasa Indonesia
         $request->validate([
             'password' => ['required', 'confirmed', 'min:8'],
         ], [
@@ -65,16 +65,17 @@ class ProfileController extends Controller
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
         ]);
 
-        // 2. MENGATASI MEMORI SESI YANG NYANGKUT:
-        // Kita panggil ulang (Fresh Instance) data user ini langsung dari database
-        // menggunakan username-nya. Ini dijamin menggunakan aturan User.php yang baru & sehat.
-        $freshUser = User::where('username', $request->user()->username)->first();
+        // 2. Pembaruan Paksa Langsung ke Database Berbasis Username
+        $username = $request->user()->username;
 
-        $freshUser->password = Hash::make($request->password);
-        $freshUser->must_change_password = 0;
+        DB::table('users')
+            ->where('username', $username)
+            ->update([
+                'password' => Hash::make($request->password),
+                'must_change_password' => 0,
+            ]);
 
-        $freshUser->save();
-
+        // 3. Arahkan kembali ke Dashboard (Frontend React akan mereload halaman penuh)
         return Redirect::route('dashboard');
     }
 }

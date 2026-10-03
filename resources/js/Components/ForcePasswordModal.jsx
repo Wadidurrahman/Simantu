@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, Check, X } from 'lucide-react';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -21,27 +21,42 @@ export default function ForcePasswordModal({ show }) {
         e.preventDefault();
         put(route('password.force.update'), {
             onSuccess: () => {
-                // Menghancurkan state memori Inertia lama yang membekukan popup
                 window.location.href = route('dashboard');
             }
         });
     };
 
-    const getPasswordStrength = (pass) => {
-        if (!pass) return { width: '0%', color: 'bg-transparent', label: '', labelColor: '' };
-        if (pass.length < 4) return { width: '33.33%', color: 'bg-red-500', label: 'Sangat Lemah', labelColor: 'text-red-500' };
-        if (pass.length < 8) return { width: '66.66%', color: 'bg-amber-500', label: 'Kurang (Min. 8 karakter)', labelColor: 'text-amber-500' };
-        return { width: '100%', color: 'bg-emerald-500', label: 'Memenuhi Syarat', labelColor: 'text-emerald-600' };
-    };
+    // Logika Validasi Sandi Real-time
+    const reqLength = data.password.length >= 8;
+    const reqUpperLower = /[a-z]/.test(data.password) && /[A-Z]/.test(data.password);
+    const reqNumber = /[0-9]/.test(data.password);
+    const reqSymbol = /[^A-Za-z0-9]/.test(data.password);
 
-    const strength = getPasswordStrength(data.password);
+    const passedRules = [reqLength, reqUpperLower, reqNumber, reqSymbol].filter(Boolean).length;
+    const strengthPercentage = data.password ? (passedRules / 4) * 100 : 0;
+
+    let strengthColor = 'bg-slate-200';
+    let strengthLabel = 'Ketik sandi...';
+    let labelColor = 'text-slate-400';
+
+    if (data.password) {
+        if (passedRules === 1) { strengthColor = 'bg-red-500'; strengthLabel = 'Sangat Lemah'; labelColor = 'text-red-500'; }
+        else if (passedRules === 2) { strengthColor = 'bg-orange-500'; strengthLabel = 'Lemah'; labelColor = 'text-orange-500'; }
+        else if (passedRules === 3) { strengthColor = 'bg-amber-500'; strengthLabel = 'Kuat'; labelColor = 'text-amber-500'; }
+        else if (passedRules === 4) { strengthColor = 'bg-emerald-500'; strengthLabel = 'Sangat Kuat'; labelColor = 'text-emerald-600'; }
+    }
+
+    const RequirementItem = ({ met, label }) => (
+        <div className={`flex items-center gap-1.5 text-[11px] transition-colors duration-300 ${met ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+            {met ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : <X className="w-3.5 h-3.5" />}
+            <span>{label}</span>
+        </div>
+    );
 
     return (
         <>
             <div className="fixed inset-0 z-50 pointer-events-auto"
-                 style={{
-                     background: 'radial-gradient(circle at calc(100% - 80px) 32px, transparent 35px, rgba(15, 23, 42, 0.45) 45px)'
-                 }}
+                 style={{ background: 'radial-gradient(circle at calc(100% - 80px) 32px, transparent 35px, rgba(15, 23, 42, 0.45) 45px)' }}
             ></div>
 
             <div className="fixed inset-0 z-40 backdrop-blur-sm pointer-events-none"
@@ -73,7 +88,7 @@ export default function ForcePasswordModal({ show }) {
                         Akses Dashboard dikunci sementara. Tingkatkan keamanan akun Anda dengan membuat kata sandi baru.
                     </p>
 
-                    <form onSubmit={submit} className="space-y-3.5">
+                    <form onSubmit={submit} className="space-y-4">
                         <div>
                             <InputLabel htmlFor="password" value="Kata Sandi Baru" className="text-xs font-bold text-slate-800" />
                             <div className="relative mt-1">
@@ -84,7 +99,7 @@ export default function ForcePasswordModal({ show }) {
                                     className="block w-full text-sm border-slate-300 focus:border-blue-600 focus:ring-blue-600/20 pr-10 rounded-lg"
                                     isFocused={true}
                                     onChange={(e) => setData('password', e.target.value)}
-                                    placeholder="Min. 8 karakter"
+                                    placeholder="Masukkan sandi baru"
                                 />
                                 <button
                                     type="button"
@@ -95,19 +110,28 @@ export default function ForcePasswordModal({ show }) {
                                 </button>
                             </div>
 
+                            {/* Progress Bar Kekuatan Sandi */}
                             <div className="flex items-center justify-between gap-3 mt-2 h-3">
                                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex-1">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-500 ease-out ${strength.color}`}
-                                        style={{ width: strength.width }}
+                                        className={`h-full rounded-full transition-all duration-500 ease-out ${strengthColor}`}
+                                        style={{ width: `${strengthPercentage}%` }}
                                     ></div>
                                 </div>
-                                <span className={`text-[10px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${strength.labelColor}`}>
-                                    {strength.label}
+                                <span className={`text-[10px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${labelColor}`}>
+                                    {strengthLabel}
                                 </span>
                             </div>
 
-                            <InputError message={errors.password} className="mt-1 text-xs" />
+                            {/* Checklist Persyaratan Sandi */}
+                            <div className="mt-3 bg-slate-50 border border-slate-100 p-2.5 rounded-lg grid grid-cols-2 gap-2">
+                                <RequirementItem met={reqLength} label="Min. 8 karakter" />
+                                <RequirementItem met={reqUpperLower} label="Kapital & kecil" />
+                                <RequirementItem met={reqNumber} label="Minimal 1 angka" />
+                                <RequirementItem met={reqSymbol} label="Karakter unik (@,#)" />
+                            </div>
+
+                            <InputError message={errors.password} className="mt-1.5 text-xs" />
                         </div>
 
                         <div>
@@ -133,7 +157,10 @@ export default function ForcePasswordModal({ show }) {
                         </div>
 
                         <div className="pt-2">
-                            <PrimaryButton className="w-full justify-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold tracking-wide py-2.5 rounded-lg shadow-sm" disabled={processing}>
+                            <PrimaryButton
+                                className="w-full justify-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold tracking-wide py-2.5 rounded-lg shadow-sm disabled:opacity-50"
+                                disabled={processing || passedRules < 4}
+                            >
                                 SIMPAN & LANJUTKAN
                             </PrimaryButton>
                         </div>
