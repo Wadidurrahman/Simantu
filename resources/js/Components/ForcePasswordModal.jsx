@@ -21,16 +21,17 @@ export default function ForcePasswordModal({ show }) {
         e.preventDefault();
         put(route('password.force.update'), {
             onSuccess: () => {
-                window.location.reload();
+                // Menghancurkan state memori Inertia lama yang membekukan popup
+                window.location.href = route('dashboard');
             }
         });
     };
 
     const getPasswordStrength = (pass) => {
-        if (!pass) return { width: '0%', color: 'bg-transparent' };
-        if (pass.length < 4) return { width: '33.33%', color: 'bg-red-500' };
-        if (pass.length < 8) return { width: '66.66%', color: 'bg-amber-500' };
-        return { width: '100%', color: 'bg-emerald-500' };
+        if (!pass) return { width: '0%', color: 'bg-transparent', label: '', labelColor: '' };
+        if (pass.length < 4) return { width: '33.33%', color: 'bg-red-500', label: 'Sangat Lemah', labelColor: 'text-red-500' };
+        if (pass.length < 8) return { width: '66.66%', color: 'bg-amber-500', label: 'Kurang (Min. 8 karakter)', labelColor: 'text-amber-500' };
+        return { width: '100%', color: 'bg-emerald-500', label: 'Memenuhi Syarat', labelColor: 'text-emerald-600' };
     };
 
     const strength = getPasswordStrength(data.password);
@@ -38,17 +39,17 @@ export default function ForcePasswordModal({ show }) {
     return (
         <>
             <div className="fixed inset-0 z-50 pointer-events-auto"
-     style={{
-         background: 'radial-gradient(circle at calc(100% - 80px) 32px, transparent 35px, rgba(15, 23, 42, 0.45) 45px)'
-     }}
-></div>
+                 style={{
+                     background: 'radial-gradient(circle at calc(100% - 80px) 32px, transparent 35px, rgba(15, 23, 42, 0.45) 45px)'
+                 }}
+            ></div>
 
-<div className="fixed inset-0 z-40 backdrop-blur-sm pointer-events-none"
-     style={{
-         maskImage: 'radial-gradient(circle at calc(100% - 90px) 32px, transparent 35px, black 45px)',
-         WebkitMaskImage: 'radial-gradient(circle at calc(100% - 90px) 32px, transparent 35px, black 45px)'
-     }}
-></div>
+            <div className="fixed inset-0 z-40 backdrop-blur-sm pointer-events-none"
+                 style={{
+                     maskImage: 'radial-gradient(circle at calc(100% - 80px) 32px, transparent 35px, black 45px)',
+                     WebkitMaskImage: 'radial-gradient(circle at calc(100% - 80px) 32px, transparent 35px, black 45px)'
+                 }}
+            ></div>
 
             <div className="fixed top-[88px] right-4 sm:right-6 lg:right-10 z-[60] w-full max-w-sm animate-fade-in-up">
                 <div className="absolute -top-2 right-10 w-5 h-5 bg-white rotate-45 rounded-sm shadow-sm border-l border-t border-slate-200"></div>
@@ -93,12 +94,19 @@ export default function ForcePasswordModal({ show }) {
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
-                            <div className="h-1 w-full bg-slate-100 rounded-full mt-1.5 overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-300 ease-out ${strength.color}`}
-                                    style={{ width: strength.width }}
-                                ></div>
+
+                            <div className="flex items-center justify-between gap-3 mt-2 h-3">
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex-1">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ease-out ${strength.color}`}
+                                        style={{ width: strength.width }}
+                                    ></div>
+                                </div>
+                                <span className={`text-[10px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${strength.labelColor}`}>
+                                    {strength.label}
+                                </span>
                             </div>
+
                             <InputError message={errors.password} className="mt-1 text-xs" />
                         </div>
 
