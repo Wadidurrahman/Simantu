@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -60,10 +61,12 @@ class ProfileController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = $request->user();
-        $user->password = Hash::make($request->password);
-        $user->must_change_password = 0;
-        $user->save();
+        DB::table('users')
+            ->where('id', $request->user()->id)
+            ->update([
+                'password' => Hash::make($request->password),
+                'must_change_password' => 0,
+            ]);
 
         return Redirect::route('dashboard');
     }
