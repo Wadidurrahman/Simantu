@@ -15,7 +15,8 @@ export default function ForcePasswordModal({ show }) {
         password_confirmation: '',
     });
 
-    if (!show) return null;
+    const isVisible = show === 1 || show === '1' || show === true;
+    if (!isVisible) return null;
 
     const submit = (e) => {
         e.preventDefault();

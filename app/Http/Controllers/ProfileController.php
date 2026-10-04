@@ -56,26 +56,32 @@ class ProfileController extends Controller
 
     public function forceUpdatePassword(Request $request)
     {
-        // 1. Validasi Standar dengan Lokalisasi Bahasa Indonesia
         $request->validate([
             'password' => ['required', 'confirmed', 'min:8'],
-        ], [
-            'password.required' => 'Kata sandi baru wajib diisi.',
-            'password.min' => 'Kata sandi minimal harus berisi 8 karakter.',
-            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
         ]);
 
-        // 2. Pembaruan Paksa Langsung ke Database Berbasis Username
-        $username = $request->user()->username;
+        $user = $request->user();
+        $namaTabel = $user->getTable();
+        $kolomKunci = $user->getKeyName();
+        $nilaiKunci = $user->getKey();
 
-        DB::table('users')
-            ->where('username', $username)
+        $affected = DB::table($namaTabel)
+            ->where($kolomKunci, $nilaiKunci)
             ->update([
                 'password' => Hash::make($request->password),
                 'must_change_password' => 0,
             ]);
 
-        // 3. Arahkan kembali ke Dashboard (Frontend React akan mereload halaman penuh)
-        return Redirect::route('dashboard');
+        if ($affected === 0) {
+             dd("GAGAL: Sistem mencoba mengupdate tabel '{$namaTabel}' menggunakan kolom '{$kolomKunci}' = '{$nilaiKunci}', tetapi data tidak ditemukan di tabel tersebut.");
+        }
+
+        $updatedUser = \App\Models\User::where('id', $user->id)->first();
+        if ($updatedUser) {
+            \Illuminate\Support\Facades\Auth::login($updatedUser);
+        }
+        $request->session()->forget('must_change_password');
+        $request->session()->put('must_change_password', 0);
+        return \Inertia\Inertia::location(route('dashboard'));
     }
 }
