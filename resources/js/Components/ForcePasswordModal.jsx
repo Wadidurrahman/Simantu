@@ -20,11 +20,7 @@ export default function ForcePasswordModal({ show }) {
 
     const submit = (e) => {
         e.preventDefault();
-        put(route('password.force.update'), {
-            onSuccess: () => {
-                window.location.href = route('dashboard');
-            }
-        });
+        put(route('password.force.update'));
     };
 
     // Logika Validasi Sandi Real-time

@@ -9,10 +9,20 @@ class Kegiatan extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $table = 'kegiatans';
+
+    protected $guarded = [
+        'id',
+    ];
+
+    protected $casts = [
+        'tahun' => 'integer',
+        'hr_satuan' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
 
     public function translokMasters()
     {
-        return $this->hasMany(TranslokMaster::class);
+        return $this->hasMany(TranslokMaster::class, 'kegiatan_id');
     }
 }

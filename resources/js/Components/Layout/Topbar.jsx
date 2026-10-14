@@ -1,14 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
-import { Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, UserCircle, LogOut, Maximize, Minimize } from 'lucide-react';
+import { Menu, Maximize, Minimize, ChevronDown, UserCircle, LogOut } from 'lucide-react';
 
 export default function Topbar({ user, setIsMobileOpen }) {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
     const displayName = user?.name || user?.nama || 'Pengguna';
-    const displayRole = user?.role === 'mitra' ? 'Mitra BPS' : (user?.role === 'admin' || user?.level === 'admin' ? 'Administrator' : 'Pegawai BPS');
     const displayId = user?.nip_baru || user?.username || '-';
     const initial = displayName.charAt(0).toUpperCase();
+    const mustChangePassword = Number(user?.must_change_password) === 1 || user?.must_change_password === true;
+
+    const getProfessionalRole = () => {
+        const role = (user?.role || user?.role_name || user?.level || '').toString().toLowerCase();
+        switch (role) {
+            case 'admin': return 'Administrator';
+            case 'ketua': return 'Kepala BPS';
+            case 'ketua_tim': return 'Ketua Tim';
+            case 'pegawai': return 'Pegawai Organik';
+            case 'mitra': return 'Mitra Statistik';
+            default: return 'Pengguna Sistem';
+        }
+    };
+    const displayRole = getProfessionalRole();
 
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
@@ -17,11 +30,11 @@ export default function Topbar({ user, setIsMobileOpen }) {
     }, []);
 
     const formattedDate = currentTime.toLocaleDateString('id-ID', {
-        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
+        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta'
     }).toUpperCase();
 
     const formattedTime = currentTime.toLocaleTimeString('id-ID', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Jakarta'
     }).replace(/:/g, '.');
 
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -31,11 +44,20 @@ export default function Topbar({ user, setIsMobileOpen }) {
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
 
+    useEffect(() => {
+        if (!isProfileMenuOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setIsProfileMenuOpen(false);
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isProfileMenuOpen]);
+
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch((err) => console.log(err));
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
+        } else if (document.exitFullscreen) {
+            document.exitFullscreen();
         }
     };
 
@@ -47,20 +69,24 @@ export default function Topbar({ user, setIsMobileOpen }) {
                     to { opacity: 1; transform: translateY(0) scale(1); }
                 }
             `}</style>
-            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0 sticky top-0 z-30 shadow-sm">
+            <header className="sticky top-0 w-full h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0 z-30 shadow-sm">
                 <div className="flex items-center">
                     <button
-                        onClick={() => setIsMobileOpen(true)}
-                        className="md:hidden inline-flex items-center justify-center p-2 rounded-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors duration-150 ease-out"
+                        type="button"
+                        aria-label="Buka menu"
+                        onClick={() => setIsMobileOpen && setIsMobileOpen(true)}
+                        className="md:hidden inline-flex items-center justify-center p-2 rounded-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors duration-150 ease-out focus:outline-none"
                     >
                         <Menu className="h-5 w-5" />
                     </button>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
                     <button
+                        type="button"
                         onClick={toggleFullscreen}
                         className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-md transition-colors duration-150 ease-out focus:outline-none"
                         title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+                        aria-label={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
                     >
                         {isFullscreen ? <Minimize className="w-[18px] h-[18px]" strokeWidth={2.5} /> : <Maximize className="w-[18px] h-[18px]" strokeWidth={2.5} />}
                     </button>
@@ -75,8 +101,11 @@ export default function Topbar({ user, setIsMobileOpen }) {
                     </div>
                     <div className="hidden sm:block h-7 w-px bg-slate-200"></div>
 
-                    <div className={`relative ${user?.must_change_password === 1 ? 'pointer-events-none' : ''}`}>
+                    <div className={`relative ${mustChangePassword ? 'pointer-events-none' : ''}`}>
                         <button
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded={isProfileMenuOpen}
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                             className="flex items-center rounded-full focus:outline-none transition-colors duration-150 ease-out gap-3 group px-1 py-1 hover:bg-slate-50"
                         >
@@ -99,6 +128,7 @@ export default function Topbar({ user, setIsMobileOpen }) {
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)}></div>
                                 <div
+                                    role="menu"
                                     className="absolute right-0 mt-2.5 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-slate-200 z-50"
                                     style={{ animation: 'dropdownEnter 180ms cubic-bezier(0.4, 0, 0.2, 1) forwards' }}
                                 >
@@ -106,11 +136,20 @@ export default function Topbar({ user, setIsMobileOpen }) {
                                         <p className="text-sm font-semibold text-slate-800">{displayName}</p>
                                         <p className="text-xs text-slate-500 mt-0.5">{displayId}</p>
                                     </div>
-                                    <Link href={route('profile.edit')} className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors duration-150 ease-out">
+                                    <Link
+                                        href={route('profile.edit')}
+                                        onClick={() => setIsProfileMenuOpen(false)}
+                                        className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors duration-150 ease-out"
+                                    >
                                         <UserCircle className="w-4 h-4 mr-3 text-slate-400" /> Profil Saya
                                     </Link>
                                     <div className="border-t border-slate-100 my-1"></div>
-                                    <Link href={route('logout')} method="post" as="button" className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-150 ease-out">
+                                    <Link
+                                        href={route('logout')}
+                                        method="post"
+                                        as="button"
+                                        className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-150 ease-out"
+                                    >
                                         <LogOut className="w-4 h-4 mr-3 text-red-500" /> Keluar Sistem
                                     </Link>
                                 </div>

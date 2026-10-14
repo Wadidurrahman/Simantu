@@ -123,14 +123,14 @@ export default function Index({ giat, masterKegiatan, tahun }) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {giat.length === 0 ? (
+                            {kegiatan.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-4 py-6 text-center text-slate-400 font-medium text-sm">
                                         Tidak ada data kegiatan di tahun {tahun}.
                                     </td>
                                 </tr>
                             ) : (
-                                giat.map((keg) => (
+                                kegiatan.map((keg) => (
                                     <tr key={keg.id} className="hover:bg-slate-50/80 transition-colors">
                                         <td className="px-4 py-2.5 font-medium text-slate-800">
                                             <span className="text-slate-400 mr-2 text-xs">{keg.kd_translok}.</span>
