@@ -1,55 +1,17 @@
-export default function ApplicationFilter({
-    query,
-    onQueryChange,
-    category,
-    onCategoryChange,
-    categories,
-}) {
+export default function ApplicationFilter({ query, onQueryChange, category, onCategoryChange, categories }) {
     return (
-        <div className="portal-filters" role="search" aria-label="Cari aplikasi">
-            <div className="portal-search-field">
-                <label htmlFor="application-search">Cari aplikasi</label>
-
-                <div className="portal-search-input">
-                    <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                    >
-                        <circle cx="10.5" cy="10.5" r="6.5" />
-                        <path d="m16 16 4 4" />
-                    </svg>
-
-                    <input
-                        id="application-search"
-                        type="search"
-                        value={query}
-                        onChange={(event) => onQueryChange(event.target.value)}
-                        placeholder="Cari nama atau fungsi aplikasi..."
-                        autoComplete="off"
-                    />
-                </div>
-            </div>
-
-            <div className="portal-category-field">
-                <label htmlFor="application-category">Kategori</label>
-
-                <select
-                    id="application-category"
-                    value={category}
-                    onChange={(event) => onCategoryChange(event.target.value)}
-                >
+        <div role="search" aria-label="Cari aplikasi" className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[minmax(0,1fr)_16rem] sm:p-5">
+            <label className="block text-sm font-semibold text-slate-700">
+                Cari aplikasi
+                <input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Nama, layanan, atau pengguna…" className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-normal text-slate-900 placeholder:text-slate-400 focus:border-sky-600 focus:ring-sky-600" />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+                Kategori
+                <select value={category} onChange={(event) => onCategoryChange(event.target.value)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-normal text-slate-900 focus:border-sky-600 focus:ring-sky-600">
                     <option value="all">Semua kategori</option>
-
-                    {categories.map((item) => (
-                        <option key={item.id} value={item.id}>
-                            {item.label}
-                        </option>
-                    ))}
+                    {categories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                 </select>
-            </div>
+            </label>
         </div>
     );
 }

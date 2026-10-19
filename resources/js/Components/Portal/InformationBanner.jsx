@@ -1,122 +1,34 @@
 import { useState } from 'react';
 
-function BannerImage({ src, alt }) {
-    const [failed, setFailed] = useState(false);
-
-    if (!src || failed) {
-        return null;
-    }
-
-    return (
-        <img
-            src={src}
-            alt={alt}
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailed(true)}
-            className="portal-banner-image"
-        />
-    );
-}
-
 export default function InformationBanner({ banners = [] }) {
     const [index, setIndex] = useState(0);
+    const [failedImage, setFailedImage] = useState(null);
 
-    const items = banners.length
-        ? banners
-        : [
-              {
-                  id: 'default',
-                  label: 'LAYANAN DIGITAL',
-                  title: 'Temukan aplikasi sesuai kebutuhan Anda.',
-                  description:
-                      'Jelajahi sistem dan layanan yang tersedia melalui direktori aplikasi.',
-                  url: '#applications',
-                  button: 'Lihat aplikasi',
-              },
-          ];
+    if (!banners.length) return null;
 
-    const activeIndex = index % items.length;
-    const current = items[activeIndex];
-
-    const previous = () => {
-        setIndex((value) => (
-            (value % items.length - 1 + items.length) % items.length
-        ));
-    };
-
-    const next = () => {
-        setIndex((value) => (value + 1) % items.length);
-    };
+    const active = index % banners.length;
+    const banner = banners[active];
+    const hasImage = banner.image && failedImage !== banner.image;
 
     return (
-        <section
-            id="information"
-            className="portal-information"
-            aria-labelledby="information-heading"
-        >
-            <div className="portal-information-heading">
-                <p className="portal-section-kicker">INFORMASI PILIHAN</p>
-
-                <h2 id="information-heading">
-                    Kabar & layanan BPS
-                </h2>
-
-                <p>Informasi yang membantu aktivitas Anda.</p>
-
-                {items.length > 1 && (
-                    <div className="portal-banner-controls">
-                        <button
-                            type="button"
-                            onClick={previous}
-                            aria-label="Informasi sebelumnya"
-                        >
-                            <span aria-hidden="true">←</span>
-                        </button>
-
-                        <span aria-label={`Informasi ${activeIndex + 1} dari ${items.length}`}>
-                            {activeIndex + 1} / {items.length}
-                        </span>
-
-                        <button
-                            type="button"
-                            onClick={next}
-                            aria-label="Informasi berikutnya"
-                        >
-                            <span aria-hidden="true">→</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            <div
-                className="portal-banner"
-                aria-live="polite"
-                aria-atomic="true"
-            >
-                <BannerImage
-                    key={current.image || current.id}
-                    src={current.image}
-                    alt={current.image_alt || ''}
-                />
-
-                <div className="portal-banner-copy">
-                    <p className="portal-banner-tag">{current.label}</p>
-
-                    <h3>{current.title}</h3>
-
-                    <p className="portal-banner-description">
-                        {current.description}
-                    </p>
-
-                    {current.url && (
-                        <a href={current.url} className="portal-banner-link">
-                            {current.button || 'Selengkapnya'}
-                            <span aria-hidden="true">→</span>
-                        </a>
-                    )}
+        <section id="information" aria-label="Informasi terbaru" className="scroll-mt-24 overflow-hidden rounded-3xl bg-sky-950 text-white">
+            <div aria-live="polite" aria-atomic="true" className={`grid ${hasImage ? 'md:grid-cols-2' : ''}`}>
+                <div className="p-6 sm:p-8 lg:p-10">
+                    <p className="text-xs font-bold tracking-widest text-sky-200">{banner.label}</p>
+                    <h2 className="mt-3 text-2xl font-bold sm:text-3xl">{banner.title}</h2>
+                    <p className="mt-3 leading-7 text-slate-200">{banner.description}</p>
+                    {banner.url && <a href={banner.url} className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-bold text-sky-950 hover:bg-sky-100">{banner.button}</a>}
                 </div>
+                {hasImage && <img key={banner.image} src={banner.image} alt={banner.image_alt || ''} width="800" height="500" loading="lazy" decoding="async" onError={() => setFailedImage(banner.image)} className="aspect-[8/5] h-full w-full object-cover" />}
             </div>
+
+            {banners.length > 1 && (
+                <div className="flex items-center justify-end gap-4 border-t border-white/10 px-6 py-4">
+                    <span className="text-sm text-sky-100">{active + 1} / {banners.length}</span>
+                    <button type="button" aria-label="Informasi sebelumnya" onClick={() => setIndex((active - 1 + banners.length) % banners.length)} className="h-11 w-11 rounded-full border border-white/30 hover:bg-white/10">←</button>
+                    <button type="button" aria-label="Informasi berikutnya" onClick={() => setIndex((active + 1) % banners.length)} className="h-11 w-11 rounded-full border border-white/30 hover:bg-white/10">→</button>
+                </div>
+            )}
         </section>
     );
 }
