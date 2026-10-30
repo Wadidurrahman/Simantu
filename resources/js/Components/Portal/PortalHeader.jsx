@@ -13,14 +13,23 @@ export default function PortalHeader({ portal }) {
 
     useEffect(() => {
         const hero = document.getElementById('portal-hero');
-        let previousY = Math.max(0, window.scrollY), frame = 0;
+        const scrollY = () => Math.max(0, Math.min(window.scrollY, document.documentElement.scrollHeight - window.innerHeight));
+        let previousY = scrollY(), distance = 0, frame = 0;
 
         const update = () => {
             frame = 0;
-            const y = Math.max(0, window.scrollY);
-            const next = open || !hero || hero.getBoundingClientRect().bottom > 0
-                ? false
-                : y === previousY ? hiddenRef.current : y > previousY;
+            const y = scrollY();
+            const delta = y - previousY;
+            const keyboardFocus = headerRef.current?.querySelector(':focus-visible');
+            let next = hiddenRef.current;
+
+            if (open || keyboardFocus || !hero || hero.getBoundingClientRect().bottom > 0 || delta < 0) {
+                next = false;
+                distance = 0;
+            } else if (delta > 0) {
+                distance += delta;
+                if (distance >= 12) next = true;
+            }
 
             if (next !== hiddenRef.current) { hiddenRef.current = next; setHidden(next); }
             previousY = y;
@@ -43,30 +52,40 @@ export default function PortalHeader({ portal }) {
         };
     }, [open]);
 
-    const onKeyDown = (event) => {
+    const closeOnEscape = (event) => {
         if (event.key === 'Escape' && open) { setOpen(false); buttonRef.current?.focus(); }
     };
 
     return (
-        <header ref={headerRef} onFocusCapture={show} onKeyDown={onKeyDown} className={`fixed inset-x-0 top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl transition-transform duration-200 motion-reduce:transition-none ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
+        <header
+            ref={headerRef} onFocusCapture={show} onKeyDown={closeOnEscape}
+            onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
+            className={`fixed inset-x-0 top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md transition-transform duration-300 ease-out motion-reduce:transition-none ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
+        >
             <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                <a href="#main-content" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-3 rounded-lg">
+                <a href="#main-content" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-3 rounded-xl">
                     {portal.logo && failedLogo !== portal.logo
-                        ? <img src={portal.logo} alt="" width="44" height="44" className="h-11 w-11 shrink-0 object-contain" onError={() => setFailedLogo(portal.logo)} />
+                        ? <img src={portal.logo} alt="" width="44" height="44" onError={() => setFailedLogo(portal.logo)} className="h-11 w-11 shrink-0 object-contain" />
                         : <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sky-900 text-sm font-black text-white">BPS</span>}
+
                     <span className="min-w-0">
                         <strong className="block text-sm leading-snug text-slate-900 sm:text-base">{portal.institution}</strong>
-                        <span className="block truncate text-xs text-slate-600">Portal informasi dan layanan</span>
+                        <span className="block text-xs text-slate-600">Portal informasi dan layanan</span>
                     </span>
                 </a>
 
-                <button ref={buttonRef} type="button" aria-expanded={open} aria-controls="portal-navigation" onClick={() => setOpen(!open)} className="min-h-11 shrink-0 rounded-xl border border-slate-300 px-4 text-sm font-semibold lg:hidden">
+                <button ref={buttonRef} type="button" aria-expanded={open} aria-controls="portal-navigation" onClick={() => setOpen(!open)} className="min-h-11 shrink-0 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800 lg:hidden">
                     {open ? 'Tutup' : 'Menu'}
                 </button>
 
-                <nav id="portal-navigation" aria-label="Navigasi utama" className={`${open ? 'flex' : 'hidden'} absolute inset-x-4 top-full mt-2 flex-col rounded-2xl border border-slate-200 bg-white p-2 shadow-lg lg:static lg:mt-0 lg:flex lg:flex-row lg:gap-1 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}>
+                <nav
+                    id="portal-navigation" aria-label="Navigasi utama"
+                    className={`absolute inset-x-4 top-full mt-2 flex max-h-[calc(100svh-6rem)] flex-col overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none lg:visible lg:pointer-events-auto lg:static lg:mt-0 lg:max-h-none lg:translate-y-0 lg:flex-row lg:gap-1 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 lg:opacity-100 lg:shadow-none ${open ? 'visible translate-y-0 opacity-100' : 'invisible pointer-events-none -translate-y-2 opacity-0'}`}
+                >
                     {links.map(([id, label]) => (
-                        <a key={id} href={`#${id}`} onClick={() => setOpen(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-sky-50 hover:text-sky-800">{label}</a>
+                        <a key={id} href={`#${id}`} onClick={() => setOpen(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-sky-50 hover:text-sky-800 motion-reduce:transition-none">
+                            {label}
+                        </a>
                     ))}
                 </nav>
             </div>

@@ -5,248 +5,86 @@ function DummyBuilding() {
         <svg
             viewBox="0 0 1200 650"
             preserveAspectRatio="xMidYMax slice"
-            className="layered-hero-building"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             aria-hidden="true"
         >
             <defs>
-                <linearGradient id="portal-dummy-sky" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#dceaf2" />
-                    <stop offset="100%" stopColor="#f1f5f3" />
+                <linearGradient id="portal-sky" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0f2b48" />
+                    <stop offset="100%" stopColor="#1a436e" />
                 </linearGradient>
-
-                <linearGradient id="portal-dummy-wall" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f8fafb" />
-                    <stop offset="100%" stopColor="#d4dfe6" />
+                <linearGradient id="portal-wall" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#e2e8f0" />
+                    <stop offset="100%" stopColor="#cbd5e1" />
                 </linearGradient>
-
-                <pattern
-                    id="portal-dummy-windows"
-                    width="72"
-                    height="84"
-                    patternUnits="userSpaceOnUse"
-                >
-                    <rect
-                        x="14"
-                        y="12"
-                        width="42"
-                        height="54"
-                        rx="2"
-                        fill="#7096ac"
-                    />
-                    <path
-                        d="M35 12v54M14 39h42"
-                        stroke="#d8e6ee"
-                        strokeWidth="3"
-                    />
+                <pattern id="portal-windows" width="60" height="70" patternUnits="userSpaceOnUse">
+                    <rect x="12" y="10" width="36" height="50" rx="4" fill="#3b82f6" opacity="0.3" />
                 </pattern>
             </defs>
-
-            <rect width="1200" height="650" fill="url(#portal-dummy-sky)" />
-
-            <circle cx="995" cy="130" r="65" fill="#f6e8bc" opacity=".6" />
-
-            <path
-                d="M0 510Q150 425 310 493T650 480T960 490T1200 455V650H0Z"
-                fill="#bdd0c4"
-            />
-
-            <rect x="260" y="315" width="680" height="310" fill="#c8d5de" />
-
-            <rect
-                x="310"
-                y="285"
-                width="580"
-                height="340"
-                fill="url(#portal-dummy-wall)"
-            />
-
-            <rect x="340" y="335" width="520" height="252" fill="url(#portal-dummy-windows)" />
-
-            <rect x="486" y="275" width="228" height="350" fill="#f5f7f7" />
-            <rect x="520" y="335" width="160" height="290" fill="#40677e" />
-            <rect x="550" y="365" width="100" height="260" fill="#284b60" />
-
-            <rect x="300" y="275" width="600" height="18" fill="#7895a7" />
-
-            <rect x="465" y="310" width="270" height="48" rx="4" fill="#234f6b" />
-
-            <text
-                x="600"
-                y="341"
-                textAnchor="middle"
-                fill="#ffffff"
-                fontFamily="system-ui, sans-serif"
-                fontSize="18"
-                fontWeight="700"
-                letterSpacing="3"
-            >
+            <rect width="1200" height="650" fill="url(#portal-sky)" />
+            <circle cx="1000" cy="150" r="120" fill="#38bdf8" opacity="0.15" />
+            <rect x="250" y="280" width="700" height="370" rx="8" fill="url(#portal-wall)" />
+            <rect x="290" y="320" width="620" height="330" fill="url(#portal-windows)" />
+            <rect x="450" y="240" width="300" height="60" rx="6" fill="#1e293b" />
+            <text x="600" y="278" textAnchor="middle" fill="#ffffff" fontFamily="sans-serif" fontSize="18" fontWeight="800" letterSpacing="4">
                 BADAN PUSAT STATISTIK
             </text>
-
-            <path d="M180 625h840l55 25H125Z" fill="#aebec8" />
-
-            <g fill="#799c83">
-                <circle cx="205" cy="485" r="70" />
-                <circle cx="155" cy="525" r="60" />
-                <circle cx="1020" cy="500" r="76" />
-                <circle cx="1080" cy="540" r="60" />
-            </g>
-
-            <path
-                d="M195 530v95M1040 540v85"
-                stroke="#6c8275"
-                strokeWidth="14"
-            />
         </svg>
     );
 }
 
 function DummyEmployees() {
-    const people = [
-        { x: 150, y: 118, scale: 0.87, skin: '#c69273', shirt: '#edf2f4' },
-        { x: 300, y: 83, scale: 1, skin: '#d5a386', shirt: '#dce7ef' },
-        { x: 450, y: 107, scale: 0.93, skin: '#ba8668', shirt: '#f4f6f7' },
-        { x: 600, y: 64, scale: 1.1, skin: '#d6a180', shirt: '#edf2f4' },
-        { x: 750, y: 107, scale: 0.93, skin: '#c38c6d', shirt: '#dce7ef' },
-        { x: 900, y: 83, scale: 1, skin: '#d8aa8d', shirt: '#f4f6f7' },
-        { x: 1050, y: 118, scale: 0.87, skin: '#b98364', shirt: '#edf2f4' },
-    ];
-
     return (
-        <svg
-            viewBox="0 0 1200 390"
-            className="layered-hero-employees"
-            aria-hidden="true"
-        >
-            <ellipse
-                cx="600"
-                cy="370"
-                rx="530"
-                ry="17"
-                fill="#163c52"
-                opacity=".12"
-            />
-
-            {people.map((person) => (
-                <g
-                    key={person.x}
-                    transform={`translate(${person.x} ${person.y}) scale(${person.scale})`}
-                >
-                    <path
-                        d="M-45 175h90l13 140H8L0 219l-8 96h-50Z"
-                        fill="#2a4355"
-                    />
-
-                    <path
-                        d="M-69 72Q-62 51-24 47h48q38 4 45 25l13 108H-82Z"
-                        fill={person.shirt}
-                    />
-
-                    <path
-                        d="M-67 81-80 184M67 81l13 103"
-                        stroke={person.skin}
-                        strokeWidth="18"
-                        strokeLinecap="round"
-                    />
-
-                    <rect
-                        x="-13"
-                        y="26"
-                        width="26"
-                        height="30"
-                        rx="8"
-                        fill={person.skin}
-                    />
-
-                    <ellipse
-                        cx="0"
-                        cy="0"
-                        rx="30"
-                        ry="37"
-                        fill={person.skin}
-                    />
-
-                    <path
-                        d="M-30-5q-6-37 30-38 37 1 30 38l-8-15q-23 10-44 0Z"
-                        fill="#253c49"
-                    />
-
-                    <path
-                        d="M-24 49 0 75l24-26M0 75v92"
-                        stroke="#a8bac6"
-                        strokeWidth="2"
-                        fill="none"
-                    />
-
-                    <rect
-                        x="23"
-                        y="91"
-                        width="18"
-                        height="22"
-                        rx="2"
-                        fill="#c6d6e0"
-                    />
-
-                    <path
-                        d="m-14 66 14 65 14-65"
-                        stroke="#587b93"
-                        strokeWidth="3"
-                        fill="none"
-                    />
-
-                    <rect
-                        x="-10"
-                        y="123"
-                        width="20"
-                        height="27"
-                        rx="3"
-                        fill="#ffffff"
-                        stroke="#b6c8d3"
-                    />
-                </g>
-            ))}
+        <svg viewBox="0 0 1200 390" style={{ width: '100%', height: '100%', objectFit: 'cover' }} aria-hidden="true">
+            <g fill="#334155" opacity="0.9">
+                <circle cx="300" cy="200" r="50" />
+                <path d="M220 380 Q300 270 380 380 Z" />
+                <circle cx="450" cy="180" r="55" fill="#1e293b" />
+                <path d="M360 380 Q450 240 540 380 Z" fill="#1e293b" />
+                <circle cx="600" cy="160" r="60" fill="#0f172a" />
+                <path d="M500 380 Q600 220 700 380 Z" fill="#0f172a" />
+                <circle cx="750" cy="180" r="55" fill="#1e293b" />
+                <path d="M660 380 Q750 240 840 380 Z" fill="#1e293b" />
+                <circle cx="900" cy="200" r="50" />
+                <path d="M820 380 Q900 270 980 380 Z" />
+            </g>
         </svg>
     );
 }
 
 export default function PortalHero({ portal }) {
     const sectionRef = useRef(null);
-
-    const hero = portal.hero ?? {};
+    const hero = portal?.hero ?? {};
 
     const [backgroundFailed, setBackgroundFailed] = useState(false);
     const [foregroundFailed, setForegroundFailed] = useState(false);
 
-    useEffect(() => {
-        setBackgroundFailed(false);
-    }, [hero.image]);
-
-    useEffect(() => {
-        setForegroundFailed(false);
-    }, [hero.foreground]);
+    useEffect(() => { setBackgroundFailed(false); }, [hero.image]);
+    useEffect(() => { setForegroundFailed(false); }, [hero.foreground]);
 
     useEffect(() => {
         const section = sectionRef.current;
-
-        if (!section) {
-            return;
-        }
+        if (!section) return;
 
         const motionQuery = window.matchMedia(
-            '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
+            '(min-width: 1024px) and (prefers-reduced-motion: no-preference)'
         );
 
-        let frame = 0;
-        let visible = true;
+        let frameId = 0;
+        let isVisible = true;
 
         const reset = () => {
-            section.style.setProperty('--hero-background-y', '0px');
-            section.style.setProperty('--hero-title-y', '0px');
-            section.style.setProperty('--hero-foreground-y', '0px');
+            section.style.setProperty('--scroll-progress', '0');
+            section.style.setProperty('--bg-y', '0px');
+            section.style.setProperty('--bg-scale', '1');
+            section.style.setProperty('--title-y', '0px');
+            section.style.setProperty('--title-opacity', '1');
+            section.style.setProperty('--fg-y', '0px');
+            section.style.setProperty('--fg-scale', '1');
         };
 
-        const update = () => {
-            frame = 0;
+        const updateParallax = () => {
+            frameId = 0;
 
             if (!motionQuery.matches) {
                 reset();
@@ -254,78 +92,270 @@ export default function PortalHero({ portal }) {
             }
 
             const rect = section.getBoundingClientRect();
-            const distance = Math.min(
-                Math.max(-rect.top, 0),
-                rect.height,
-            );
+            const scrolledDistance = Math.max(0, -rect.top);
+            const totalScrollable = rect.height;
+            const progress = Math.min(Math.max(scrolledDistance / totalScrollable, 0), 1);
 
-            section.style.setProperty(
-                '--hero-background-y',
-                `${Math.min(distance * 0.04, 20)}px`,
-            );
+            const bgY = scrolledDistance * 0.25;
+            const bgScale = 1 + progress * 0.05;
 
-            section.style.setProperty(
-                '--hero-title-y',
-                `${Math.min(distance * 0.07, 32)}px`,
-            );
+            const titleY = scrolledDistance * 0.45;
+            const titleOpacity = Math.max(0, 1 - progress * 1.8);
 
-            section.style.setProperty(
-                '--hero-foreground-y',
-                `${-Math.min(distance * 0.09, 42)}px`,
-            );
+            const fgY = -scrolledDistance * 0.18;
+            const fgScale = 1 + progress * 0.03;
+
+            section.style.setProperty('--scroll-progress', progress.toFixed(3));
+            section.style.setProperty('--bg-y', `${bgY.toFixed(1)}px`);
+            section.style.setProperty('--bg-scale', bgScale.toFixed(3));
+            section.style.setProperty('--title-y', `${titleY.toFixed(1)}px`);
+            section.style.setProperty('--title-opacity', titleOpacity.toFixed(2));
+            section.style.setProperty('--fg-y', `${fgY.toFixed(1)}px`);
+            section.style.setProperty('--fg-scale', fgScale.toFixed(3));
         };
 
-        const schedule = () => {
-            if (!frame) {
-                frame = window.requestAnimationFrame(update);
+        const requestUpdate = () => {
+            if (!frameId) {
+                frameId = window.requestAnimationFrame(updateParallax);
             }
         };
 
         const onScroll = () => {
-            if (visible && motionQuery.matches) {
-                schedule();
+            if (isVisible && motionQuery.matches) {
+                requestUpdate();
             }
         };
 
         const observer = new IntersectionObserver(([entry]) => {
-            visible = entry.isIntersecting;
-
-            if (visible) {
-                schedule();
-            }
-        });
+            isVisible = entry.isIntersecting;
+            if (isVisible) requestUpdate();
+        }, { threshold: 0 });
 
         observer.observe(section);
 
         window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', schedule);
-        motionQuery.addEventListener('change', schedule);
+        window.addEventListener('resize', requestUpdate);
+        motionQuery.addEventListener('change', requestUpdate);
 
-        schedule();
+        requestUpdate();
 
         return () => {
             observer.disconnect();
-            window.cancelAnimationFrame(frame);
-
+            if (frameId) window.cancelAnimationFrame(frameId);
             window.removeEventListener('scroll', onScroll);
-            window.removeEventListener('resize', schedule);
-            motionQuery.removeEventListener('change', schedule);
+            window.removeEventListener('resize', requestUpdate);
+            motionQuery.removeEventListener('change', requestUpdate);
         };
     }, []);
+
+    const styles = {
+        section: {
+            position: 'relative',
+            width: '100%',
+            backgroundColor: '#0b1320',
+            color: '#ffffff',
+            overflow: 'hidden'
+        },
+        viewport: {
+            position: 'relative',
+            width: '100%',
+            height: '85vh',
+            minHeight: '600px',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        layerBg: {
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 1,
+            transform: 'translateY(var(--bg-y, 0px)) scale(var(--bg-scale, 1))',
+            transition: 'transform 0.1s cubic-bezier(0, 0, 0.2, 1)',
+            pointerEvents: 'none'
+        },
+        imgBg: {
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center 30%'
+        },
+        overlay: {
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, rgba(11, 19, 32, 0.4) 0%, rgba(11, 19, 32, 0.2) 40%, rgba(11, 19, 32, 0.7) 100%)'
+        },
+        layerTitle: {
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingBottom: '8vh',
+            transform: 'translateY(var(--title-y, 0px))',
+            opacity: 'var(--title-opacity, 1)',
+            transition: 'transform 0.1s cubic-bezier(0, 0, 0.2, 1), opacity 0.1s linear',
+            pointerEvents: 'none'
+        },
+        titleContainer: {
+            textAlign: 'center',
+            padding: '0 1.5rem',
+            filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5))'
+        },
+        eyebrow: {
+            display: 'inline-block',
+            fontSize: 'clamp(0.875rem, 1.5vw, 1.25rem)',
+            fontWeight: 700,
+            letterSpacing: '0.35em',
+            color: '#60a5fa',
+            textTransform: 'uppercase',
+            marginBottom: '0.5rem'
+        },
+        heading: {
+            margin: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            lineHeight: 0.95
+        },
+        headingSub: {
+            fontSize: 'clamp(2rem, 5vw, 4rem)',
+            fontWeight: 300,
+            letterSpacing: '0.2em',
+            color: '#f8fafc'
+        },
+        headingMain: {
+            fontSize: 'clamp(3rem, 8vw, 7rem)',
+            fontWeight: 900,
+            letterSpacing: '0.05em',
+            background: 'linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+        },
+        layerFg: {
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 3,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            transform: 'translateY(var(--fg-y, 0px)) scale(var(--fg-scale, 1))',
+            transition: 'transform 0.1s cubic-bezier(0, 0, 0.2, 1)',
+            pointerEvents: 'none'
+        },
+        imgFg: {
+            width: '100%',
+            maxWidth: '1400px',
+            height: 'auto',
+            maxHeight: '70%',
+            objectFit: 'contain',
+            objectPosition: 'bottom center',
+            filter: 'drop-shadow(0 -10px 25px rgba(0, 0, 0, 0.3))'
+        },
+        bottomFade: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '120px',
+            background: 'linear-gradient(to top, #0b1320 10%, transparent 100%)',
+            zIndex: 4,
+            pointerEvents: 'none'
+        },
+        badge: {
+            position: 'absolute',
+            top: '1.5rem',
+            right: '1.5rem',
+            zIndex: 10,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: '#94a3b8',
+            fontSize: '0.75rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '9999px'
+        },
+        contentWrapper: {
+            position: 'relative',
+            zIndex: 5,
+            maxWidth: '1200px',
+            margin: '-3rem auto 0 auto',
+            padding: '0 1.5rem 4rem 1.5rem'
+        },
+        contentCard: {
+            background: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '1.5rem',
+            padding: '2.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2rem',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
+        },
+        contentTag: {
+            display: 'inline-block',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            letterSpacing: '0.15em',
+            color: '#38bdf8',
+            marginBottom: '0.5rem'
+        },
+        contentTextH2: {
+            fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
+            fontWeight: 700,
+            color: '#ffffff',
+            margin: '0 0 0.75rem 0',
+            lineHeight: 1.2
+        },
+        contentTextP: {
+            color: '#94a3b8',
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            margin: 0,
+            maxWidth: '650px'
+        },
+        btnPrimary: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+            color: '#ffffff',
+            fontWeight: 600,
+            padding: '1rem 1.75rem',
+            borderRadius: '9999px',
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 10px 20px rgba(2, 132, 199, 0.3)',
+            transition: 'all 0.3s ease'
+        },
+        btnIcon: {
+            width: '1.25rem',
+            height: '1.25rem'
+        }
+    };
 
     return (
         <section
             ref={sectionRef}
-            className="layered-hero"
+            style={styles.section}
             aria-labelledby="portal-heading"
         >
-            <div className="layered-hero-stage">
-                <div className="layered-hero-background">
+            <div style={styles.viewport}>
+                <div style={styles.layerBg}>
                     {hero.image && !backgroundFailed ? (
                         <img
                             src={hero.image}
-                            alt=""
-                            className="layered-hero-background-photo"
+                            alt="Gedung BPS Kota Probolinggo"
+                            style={styles.imgBg}
                             fetchPriority="high"
                             decoding="async"
                             onError={() => setBackgroundFailed(true)}
@@ -333,27 +363,27 @@ export default function PortalHero({ portal }) {
                     ) : (
                         <DummyBuilding />
                     )}
+                    <div style={styles.overlay} />
                 </div>
 
-                <div className="layered-hero-tint" />
-
-                <div className="layered-hero-title">
-                    <p className="layered-hero-eyebrow">
-                        BADAN PUSAT STATISTIK
-                    </p>
-
-                    <h1 id="portal-heading">
-                        <span>KOTA</span>
-                        <span>PROBOLINGGO</span>
-                    </h1>
+                <div style={styles.layerTitle}>
+                    <div style={styles.titleContainer}>
+                        <span style={styles.eyebrow}>
+                            BADAN PUSAT STATISTIK
+                        </span>
+                        <h1 id="portal-heading" style={styles.heading}>
+                            <span style={styles.headingSub}>KOTA</span>
+                            <span style={styles.headingMain}>PROBOLINGGO</span>
+                        </h1>
+                    </div>
                 </div>
 
-                <div className="layered-hero-foreground">
+                <div style={styles.layerFg}>
                     {hero.foreground && !foregroundFailed ? (
                         <img
                             src={hero.foreground}
                             alt={hero.foreground_alt || 'Pegawai BPS Kota Probolinggo'}
-                            className="layered-hero-foreground-photo"
+                            style={styles.imgFg}
                             fetchPriority="high"
                             decoding="async"
                             onError={() => setForegroundFailed(true)}
@@ -363,31 +393,46 @@ export default function PortalHero({ portal }) {
                     )}
                 </div>
 
-                <div className="layered-hero-bottom-fade" />
+                <div style={styles.bottomFade} />
 
                 {(!hero.image || backgroundFailed || !hero.foreground || foregroundFailed) && (
-                    <span className="layered-hero-demo-label">
+                    <span style={styles.badge}>
                         Ilustrasi sementara
                     </span>
                 )}
             </div>
 
-            <div className="layered-hero-content">
-                <div>
-                    <p className="layered-hero-content-label">
-                        PORTAL APLIKASI & LAYANAN
-                    </p>
+            <div style={styles.contentWrapper}>
+                <div className="hero-content-card" style={styles.contentCard}>
+                    <div>
+                        <span style={styles.contentTag}>
+                            PORTAL APLIKASI & LAYANAN
+                        </span>
+                        <h2 style={styles.contentTextH2}>Terhubung lebih mudah, dalam satu tempat.</h2>
+                        <p style={styles.contentTextP}>{portal?.description}</p>
+                    </div>
 
-                    <h2>Terhubung lebih mudah, dalam satu tempat.</h2>
-
-                    <p>{portal.description}</p>
+                    <div>
+                        <a href="#applications" style={styles.btnPrimary}>
+                            <span>Jelajahi Aplikasi</span>
+                            <svg style={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M7 17L17 7M17 7H7M17 7V17" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </a>
+                    </div>
                 </div>
-
-                <a href="#applications" className="portal-button">
-                    Jelajahi aplikasi
-                    <span aria-hidden="true">↗</span>
-                </a>
             </div>
+
+            <style>{`
+                @media (min-width: 768px) {
+                    .hero-content-card {
+                        flex-direction: row !important;
+                        align-items: center !important;
+                        justify-content: space-between !important;
+                        padding: 3rem !important;
+                    }
+                }
+            `}</style>
         </section>
     );
 }
