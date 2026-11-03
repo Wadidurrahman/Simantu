@@ -24,22 +24,40 @@ Route::middleware('auth')->group(function () {
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
         Route::get('/kegiatan/realisasi', fn () => Inertia::render('Kegiatan/Realisasi'))->name('kegiatan.realisasi');
-        Route::resource('kegiatan', kegiatanController::class)->except(['create', 'show', 'edit']);
+        Route::resource('kegiatan', KegiatanController::class)->except(['create', 'show', 'edit']);
 
-        Route::prefix('translok/master')->name('translok.master.')->group(function () {
-            Route::get('/', [TranslokMasterController::class, 'index'])->name('index');
-            Route::post('/', [TranslokMasterController::class, 'store'])->name('store');
-            Route::put('/{id}', [TranslokMasterController::class, 'update'])->name('update');
-            Route::delete('/{id}', [TranslokMasterController::class, 'destroy'])->name('destroy');
+        Route::prefix('translok')->group(function () {
+            Route::prefix('master')->name('translok.master.')->controller(TranslokMasterController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::put('/{id}', 'update')->name('update');
+                Route::delete('/{id}', 'destroy')->name('destroy');
+            });
+
+
+            Route::get('/translok/alokasi', [\App\Http\Controllers\TranslokAlokasiController::class, 'index'])->name('translok.alokasi');
+            Route::post('/translok/alokasi', [\App\Http\Controllers\TranslokAlokasiController::class, 'store'])->name('translok.alokasi.store');
+            Route::put('/translok/alokasi/{id}', [\App\Http\Controllers\TranslokAlokasiController::class, 'update'])->name('translok.alokasi.update');
+            Route::delete('/translok/alokasi/{id}', [\App\Http\Controllers\TranslokAlokasiController::class, 'destroy'])->name('translok.alokasi.destroy');
+
+
+
+            Route::get('/off', [\App\Http\Controllers\TranslokBookingWindowController::class, 'index'])->name('translok.off');
+            Route::post('/off/windows', [\App\Http\Controllers\TranslokBookingWindowController::class, 'store'])->name('translok.off.window.store');
+            Route::put('/off/windows/{id}', [\App\Http\Controllers\TranslokBookingWindowController::class, 'update'])->name('translok.off.window.update');
+            Route::delete('/off/windows/{id}', [\App\Http\Controllers\TranslokBookingWindowController::class, 'destroy'])->name('translok.off.window.destroy');
+
+            Route::get('/detail', [\App\Http\Controllers\TranslokDetailController::class, 'index'])->name('translok.detail');
+            Route::get('/detail/availability', [\App\Http\Controllers\TranslokDetailController::class, 'availability'])->name('translok.detail.availability');
+            Route::post('/detail', [\App\Http\Controllers\TranslokDetailController::class, 'store'])->name('translok.detail.store');
+            Route::delete('/detail/{id}', [\App\Http\Controllers\TranslokDetailController::class, 'destroy'])->name('translok.detail.destroy');
+
         });
+
+        Route::resource('translok', TranslokController::class)->except(['create', 'show', 'edit']);
 
         Route::resource('pegawai', PegawaiController::class)->except(['create', 'show', 'edit']);
         Route::resource('honor', HonorController::class)->except(['create', 'show', 'edit']);
-        Route::resource('translok', TranslokController::class)->except(['create', 'show', 'edit']);
-
-        Route::get('/translok/alokasi', fn () => 'Halaman Alokasi Translok')->name('translok.alokasi');
-        Route::get('/translok/detail', fn () => 'Halaman Detail Translok')->name('translok.detail');
-        Route::get('/translok/off', fn () => 'Halaman Tanggal Off Translok')->name('translok.off');
 
         Route::get('/mitra', fn () => 'Halaman Master Mitra')->name('mitra.index');
         Route::get('/mitra/tugas', fn () => 'Halaman Tugas Saya')->name('mitra.tugas');

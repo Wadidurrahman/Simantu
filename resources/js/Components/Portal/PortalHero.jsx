@@ -5,7 +5,7 @@ function DummyBuilding() {
         <svg
             viewBox="0 0 1200 650"
             preserveAspectRatio="xMidYMax slice"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            className="w-full h-full object-cover"
             aria-hidden="true"
         >
             <defs>
@@ -35,7 +35,7 @@ function DummyBuilding() {
 
 function DummyEmployees() {
     return (
-        <svg viewBox="0 0 1200 390" style={{ width: '100%', height: '100%', objectFit: 'cover' }} aria-hidden="true">
+        <svg viewBox="0 0 1200 390" className="w-full h-full object-cover" aria-hidden="true">
             <g fill="#334155" opacity="0.9">
                 <circle cx="300" cy="200" r="50" />
                 <path d="M220 380 Q300 270 380 380 Z" />
@@ -66,9 +66,7 @@ export default function PortalHero({ portal }) {
         const section = sectionRef.current;
         if (!section) return;
 
-        const motionQuery = window.matchMedia(
-            '(min-width: 1024px) and (prefers-reduced-motion: no-preference)'
-        );
+        const motionQuery = window.matchMedia('(min-width: 1024px) and (prefers-reduced-motion: no-preference)');
 
         let frameId = 0;
         let isVisible = true;
@@ -148,214 +146,19 @@ export default function PortalHero({ portal }) {
         };
     }, []);
 
-    const styles = {
-        section: {
-            position: 'relative',
-            width: '100%',
-            backgroundColor: '#0b1320',
-            color: '#ffffff',
-            overflow: 'hidden'
-        },
-        viewport: {
-            position: 'relative',
-            width: '100%',
-            height: '85vh',
-            minHeight: '600px',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-        },
-        layerBg: {
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 1,
-            transform: 'translateY(var(--bg-y, 0px)) scale(var(--bg-scale, 1))',
-            transition: 'transform 0.1s cubic-bezier(0, 0, 0.2, 1)',
-            pointerEvents: 'none'
-        },
-        imgBg: {
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center 30%'
-        },
-        overlay: {
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(180deg, rgba(11, 19, 32, 0.4) 0%, rgba(11, 19, 32, 0.2) 40%, rgba(11, 19, 32, 0.7) 100%)'
-        },
-        layerTitle: {
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingBottom: '8vh',
-            transform: 'translateY(var(--title-y, 0px))',
-            opacity: 'var(--title-opacity, 1)',
-            transition: 'transform 0.1s cubic-bezier(0, 0, 0.2, 1), opacity 0.1s linear',
-            pointerEvents: 'none'
-        },
-        titleContainer: {
-            textAlign: 'center',
-            padding: '0 1.5rem',
-            filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5))'
-        },
-        eyebrow: {
-            display: 'inline-block',
-            fontSize: 'clamp(0.875rem, 1.5vw, 1.25rem)',
-            fontWeight: 700,
-            letterSpacing: '0.35em',
-            color: '#60a5fa',
-            textTransform: 'uppercase',
-            marginBottom: '0.5rem'
-        },
-        heading: {
-            margin: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            lineHeight: 0.95
-        },
-        headingSub: {
-            fontSize: 'clamp(2rem, 5vw, 4rem)',
-            fontWeight: 300,
-            letterSpacing: '0.2em',
-            color: '#f8fafc'
-        },
-        headingMain: {
-            fontSize: 'clamp(3rem, 8vw, 7rem)',
-            fontWeight: 900,
-            letterSpacing: '0.05em',
-            background: 'linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-        },
-        layerFg: {
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 3,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            transform: 'translateY(var(--fg-y, 0px)) scale(var(--fg-scale, 1))',
-            transition: 'transform 0.1s cubic-bezier(0, 0, 0.2, 1)',
-            pointerEvents: 'none'
-        },
-        imgFg: {
-            width: '100%',
-            maxWidth: '1400px',
-            height: 'auto',
-            maxHeight: '70%',
-            objectFit: 'contain',
-            objectPosition: 'bottom center',
-            filter: 'drop-shadow(0 -10px 25px rgba(0, 0, 0, 0.3))'
-        },
-        bottomFade: {
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '120px',
-            background: 'linear-gradient(to top, #0b1320 10%, transparent 100%)',
-            zIndex: 4,
-            pointerEvents: 'none'
-        },
-        badge: {
-            position: 'absolute',
-            top: '1.5rem',
-            right: '1.5rem',
-            zIndex: 10,
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#94a3b8',
-            fontSize: '0.75rem',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '9999px'
-        },
-        contentWrapper: {
-            position: 'relative',
-            zIndex: 5,
-            maxWidth: '1200px',
-            margin: '-3rem auto 0 auto',
-            padding: '0 1.5rem 4rem 1.5rem'
-        },
-        contentCard: {
-            background: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '1.5rem',
-            padding: '2.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '2rem',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
-        },
-        contentTag: {
-            display: 'inline-block',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            color: '#38bdf8',
-            marginBottom: '0.5rem'
-        },
-        contentTextH2: {
-            fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
-            fontWeight: 700,
-            color: '#ffffff',
-            margin: '0 0 0.75rem 0',
-            lineHeight: 1.2
-        },
-        contentTextP: {
-            color: '#94a3b8',
-            fontSize: '1rem',
-            lineHeight: 1.6,
-            margin: 0,
-            maxWidth: '650px'
-        },
-        btnPrimary: {
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-            color: '#ffffff',
-            fontWeight: 600,
-            padding: '1rem 1.75rem',
-            borderRadius: '9999px',
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 10px 20px rgba(2, 132, 199, 0.3)',
-            transition: 'all 0.3s ease'
-        },
-        btnIcon: {
-            width: '1.25rem',
-            height: '1.25rem'
-        }
-    };
-
     return (
-        <section
-            ref={sectionRef}
-            style={styles.section}
-            aria-labelledby="portal-heading"
-        >
-            <div style={styles.viewport}>
-                <div style={styles.layerBg}>
+        <section ref={sectionRef} className="relative w-full bg-[#0b1320] text-white overflow-hidden" aria-labelledby="portal-heading">
+            <div className="relative w-full h-[85vh] min-h-[600px] overflow-hidden flex items-center justify-center">
+
+                <div
+                    className="absolute inset-0 w-full h-full z-[1] pointer-events-none transition-transform duration-100 ease-out"
+                    style={{ transform: 'translateY(var(--bg-y, 0px)) scale(var(--bg-scale, 1))' }}
+                >
                     {hero.image && !backgroundFailed ? (
                         <img
                             src={hero.image}
                             alt="Gedung BPS Kota Probolinggo"
-                            style={styles.imgBg}
+                            className="w-full h-full object-cover object-[center_30%]"
                             fetchPriority="high"
                             decoding="async"
                             onError={() => setBackgroundFailed(true)}
@@ -363,27 +166,38 @@ export default function PortalHero({ portal }) {
                     ) : (
                         <DummyBuilding />
                     )}
-                    <div style={styles.overlay} />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#0b1320]/40 via-[#0b1320]/20 to-[#0b1320]/70" />
                 </div>
 
-                <div style={styles.layerTitle}>
-                    <div style={styles.titleContainer}>
-                        <span style={styles.eyebrow}>
+                <div
+                    className="absolute inset-0 w-full h-full z-[2] flex items-center justify-center pb-[8vh] pointer-events-none transition-[transform,opacity] duration-100 ease-out"
+                    style={{
+                        transform: 'translateY(var(--title-y, 0px))',
+                        opacity: 'var(--title-opacity, 1)'
+                    }}
+                >
+                    <div className="text-center px-6 drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]">
+                        <span className="inline-block text-xs sm:text-sm md:text-lg font-bold tracking-[0.35em] text-[#60a5fa] uppercase mb-2">
                             BADAN PUSAT STATISTIK
                         </span>
-                        <h1 id="portal-heading" style={styles.heading}>
-                            <span style={styles.headingSub}>KOTA</span>
-                            <span style={styles.headingMain}>PROBOLINGGO</span>
+                        <h1 id="portal-heading" className="m-0 flex flex-col items-center leading-[0.95]">
+                            <span className="text-[clamp(2rem,5vw,4rem)] font-light tracking-[0.2em] text-[#f8fafc]">KOTA</span>
+                            <span className="text-[clamp(3rem,8vw,7rem)] font-black tracking-[0.05em] bg-gradient-to-b from-white via-white to-[#cbd5e1] bg-clip-text text-transparent">
+                                PROBOLINGGO
+                            </span>
                         </h1>
                     </div>
                 </div>
 
-                <div style={styles.layerFg}>
+                <div
+                    className="absolute inset-0 w-full h-full z-[3] flex items-end justify-center pointer-events-none transition-transform duration-100 ease-out"
+                    style={{ transform: 'translateY(var(--fg-y, 0px)) scale(var(--fg-scale, 1))' }}
+                >
                     {hero.foreground && !foregroundFailed ? (
                         <img
                             src={hero.foreground}
                             alt={hero.foreground_alt || 'Pegawai BPS Kota Probolinggo'}
-                            style={styles.imgFg}
+                            className="w-full max-w-[1400px] h-auto max-h-[70%] object-contain object-bottom filter drop-shadow-[0_-10px_25px_rgba(0,0,0,0.3)]"
                             fetchPriority="high"
                             decoding="async"
                             onError={() => setForegroundFailed(true)}
@@ -393,46 +207,42 @@ export default function PortalHero({ portal }) {
                     )}
                 </div>
 
-                <div style={styles.bottomFade} />
+                <div className="absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-[#0b1320] via-[#0b1320]/50 to-transparent z-[4] pointer-events-none" />
 
                 {(!hero.image || backgroundFailed || !hero.foreground || foregroundFailed) && (
-                    <span style={styles.badge}>
+                    <span className="absolute top-6 right-6 z-10 bg-[#0f172a]/75 backdrop-blur-md border border-white/10 text-[#94a3b8] text-xs px-3 py-1.5 rounded-full">
                         Ilustrasi sementara
                     </span>
                 )}
             </div>
 
-            <div style={styles.contentWrapper}>
-                <div className="hero-content-card" style={styles.contentCard}>
+            <div className="relative z-[5] max-w-7xl mx-auto -mt-12 px-6 pb-16">
+                <div className="bg-[#0f172a]/85 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-12 flex flex-col md:flex-row md:items-center md:justify-between gap-8 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
                     <div>
-                        <span style={styles.contentTag}>
+                        <span className="inline-block text-xs font-bold tracking-[0.15em] text-[#38bdf8] mb-2">
                             PORTAL APLIKASI & LAYANAN
                         </span>
-                        <h2 style={styles.contentTextH2}>Terhubung lebih mudah, dalam satu tempat.</h2>
-                        <p style={styles.contentTextP}>{portal?.description}</p>
+                        <h2 className="text-[clamp(1.5rem,3vw,2.25rem)] font-bold text-white m-0 mb-3 leading-tight">
+                            Terhubung lebih mudah, dalam satu tempat.
+                        </h2>
+                        <p className="text-[#94a3b8] text-base leading-relaxed m-0 max-w-2xl">
+                            {portal?.description}
+                        </p>
                     </div>
 
                     <div>
-                        <a href="#applications" style={styles.btnPrimary}>
+                        <a
+                            href="#applications"
+                            className="inline-flex items-center gap-3 bg-gradient-to-br from-[#0284c7] to-[#0369a1] text-white font-semibold px-7 py-4 rounded-full no-underline whitespace-nowrap shadow-[0_10px_20px_rgba(2,132,199,0.3)] hover:brightness-110 transition-all duration-300"
+                        >
                             <span>Jelajahi Aplikasi</span>
-                            <svg style={styles.btnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M7 17L17 7M17 7H7M17 7V17" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </a>
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                @media (min-width: 768px) {
-                    .hero-content-card {
-                        flex-direction: row !important;
-                        align-items: center !important;
-                        justify-content: space-between !important;
-                        padding: 3rem !important;
-                    }
-                }
-            `}</style>
         </section>
     );
 }
