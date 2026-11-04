@@ -260,7 +260,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 }
             `}</style>
 
-            <aside className={`hidden lg:flex flex-col bg-gray-100 transition-[width] duration-300 ease-in-out z-40 shrink-0 h-screen sticky top-0 relative overflow-visible ${isCollapsed ? 'w-[76px]' : 'w-[240px]'}`}>
+            <aside className={`hidden lg:flex flex-col bg-gray-100 transition-[width] duration-300 ease-in-out z-40 shrink-0 h-screen sticky top-0 overflow-visible ${isCollapsed ? 'w-[76px]' : 'w-[240px]'}`}>
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="absolute -right-3 top-5 z-50 w-6 h-6 bg-blue-600 border border-blue-700 text-white hover:text-white hover:bg-blue-700 rounded-full flex items-center justify-center shadow-md transition-all duration-200 focus:outline-none"
