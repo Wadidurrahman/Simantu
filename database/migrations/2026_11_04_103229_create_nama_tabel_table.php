@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('nama_tabel', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+        Schema::table('translok_booking_slots', function (Blueprint $table) {
+        $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+    });
     }
 
     /**
