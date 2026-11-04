@@ -21,6 +21,7 @@ const navigationItems = [
         name: 'Perjalanan Dinas', icon: Map, roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'],
         children: [
             { name: 'Master Translok', routeName: 'translok.master.index', roles: ['admin', 'ketua', 'ketua_tim'] },
+            { name: 'Pilih Jadwal', routeName: 'translok.slot.index', roles: ['pegawai', 'admin', 'ketua'] },
             { name: 'Alokasi Translok', routeName: 'translok.alokasi', roles: ['admin', 'ketua', 'ketua_tim'] },
             { name: 'Detail Perjalanan', routeName: 'translok.detail', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
             { name: 'Tanggal Off', routeName: 'translok.off', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
