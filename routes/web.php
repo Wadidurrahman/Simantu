@@ -8,6 +8,9 @@ use App\Http\Controllers\HonorController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TranslokBookingController;
+use App\Http\Controllers\TranslokMasterController;
+use App\Http\Controllers\TranslokAlokasiController;
+use App\Http\Controllers\TranslokDetailController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,8 +30,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('kegiatan', KegiatanController::class)->except(['create', 'show', 'edit']);
 
         Route::prefix('translok')->group(function () {
+            Route::get('/master', [TranslokMasterController::class, 'index'])->name('translok.master.index');
+            Route::get('/alokasi', [TranslokAlokasiController::class, 'index'])->name('translok.alokasi.index');
+            Route::get('/detail', [TranslokDetailController::class, 'index'])->name('translok.detail.index');
             Route::get('/booking', [App\Http\Controllers\TranslokBookingController::class, 'index'])->name('translok.booking.index');
-
             Route::post('/booking/windows', [App\Http\Controllers\TranslokBookingController::class, 'storeWindow'])->name('translok.booking.window.store');
             Route::delete('/booking/windows/{id}', [App\Http\Controllers\TranslokBookingController::class, 'destroyWindow'])->name('translok.booking.window.destroy');
             Route::post('/booking/slots', [App\Http\Controllers\TranslokBookingController::class, 'storeSlot'])->name('translok.booking.slot.store');
