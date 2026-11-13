@@ -2,22 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index(Request $request): Response
     {
+        $sekarang = now('Asia/Jakarta');
+        $tahun = (int) $request->session()->get('tahun_aktif', $sekarang->year);
 
-        $user = $request->user();
-        $year = now()->year;
-        $month = now()->month;
+        if (! $request->session()->has('tahun_aktif') || $tahun < 2020 || $tahun > $sekarang->year + 1) {
+            $tahun = $sekarang->year;
+            $request->session()->put('tahun_aktif', $tahun);
+        }
 
-        if ($user->role === 'mitra') {
+        if ($request->user()->role === 'mitra') {
             return Inertia::render('Dashboard', [
                 'kpi' => [
                     'kegiatan_aktif' => 0,
@@ -32,82 +35,148 @@ class DashboardController extends Controller
             ]);
         }
 
+        $honor = $this->ringkasanHonor($tahun);
+        $translok = $this->ringkasanTranslok($tahun);
+
         return Inertia::render('Dashboard', [
-            'kpi' => $this->getKpiMetrics($year, $month),
-            'kegiatanTerkini' => $this->getRecentActivities(5),
-            'serapanAnggaran' => $this->getBudgetAbsorption($year),
+            'kpi' => $this->statistik($tahun, $honor['persentase']),
+            'kegiatanTerkini' => $this->kegiatanTerkini($tahun),
+            'serapanAnggaran' => [
+                [
+                    'id' => 1,
+                    'label' => 'Honor Dibayar dari yang Disetujui',
+                    'persentase' => $honor['persentase'],
+                    'color' => 'blue',
+                ],
+                [
+                    'id' => 2,
+                    'label' => 'Nilai Pagu Translok Dialokasikan',
+                    'persentase' => $translok['persentase'],
+                    'color' => 'amber',
+                ],
+            ],
         ]);
     }
 
-    private function getKpiMetrics(int $year, int $month): array
+    private function statistik(int $tahun, int $persentaseHonor): array
     {
-        $kegiatanAktif = DB::table('kegiatan')->count();
-        $translokBerjalan = DB::table('translok_master')->count();
-
-        $mitraBps = DB::table('mitra2025')->count();
-        $pegawaiOrganik = DB::table('organik')->count();
-        $totalMitra = $mitraBps + $pegawaiOrganik;
-
-        $realisasiHonorDb = DB::table('petugas')
-            ->where('tahun', $year)
-            ->sum('jml_hr');
-
-        $paguTahunanHonor = 500000000;
-        $persenHonor = $paguTahunanHonor > 0 ? (int) round(($realisasiHonorDb / $paguTahunanHonor) * 100) : 0;
+        $sekarang = now('Asia/Jakarta');
+        $tahunString = (string) $tahun;
+        $tanggal = $sekarang->toDateString();
+        $awalBulan = $sekarang->copy()->startOfMonth()->toDateTimeString();
+        $akhirBulan = $sekarang->copy()->endOfMonth()->toDateTimeString();
 
         return [
-            'kegiatan_aktif' => $kegiatanAktif,
-            'kegiatan_baru_bulan_ini' => 0,
-            'translok_berjalan' => $translokBerjalan,
-            'translok_pending' => 0,
-            'realisasi_honor' => min($persenHonor, 100),
-            'mitra_terlibat' => $totalMitra,
+            'kegiatan_aktif' => DB::table('tb_kegiatan')
+                ->where('tahun', $tahunString)
+                ->where('status', 'berjalan')
+                ->where('is_active', 1)
+                ->count(),
+
+            'kegiatan_baru_bulan_ini' => DB::table('tb_kegiatan')
+                ->where('tahun', $tahunString)
+                ->whereBetween('created_at', [$awalBulan, $akhirBulan])
+                ->count(),
+
+            'translok_berjalan' => DB::table('tb_translok_alokasi as alokasi')
+                ->join('tb_translok_master as master', 'master.id', '=', 'alokasi.translok_master_id')
+                ->where('master.tahun', $tahunString)
+                ->where('alokasi.status', 'disetujui')
+                ->whereDate('alokasi.tanggal_mulai', '<=', $tanggal)
+                ->whereDate('alokasi.tanggal_selesai', '>=', $tanggal)
+                ->count(),
+
+            'translok_pending' => DB::table('tb_translok_alokasi as alokasi')
+                ->join('tb_translok_master as master', 'master.id', '=', 'alokasi.translok_master_id')
+                ->where('master.tahun', $tahunString)
+                ->where('alokasi.status', 'draft')
+                ->count(),
+
+            'realisasi_honor' => $persentaseHonor,
+
+            'mitra_terlibat' => DB::table('tb_kegiatan_petugas')
+                ->where('tahun', $tahunString)
+                ->whereNotNull('mitra_id')
+                ->where('status', '!=', 'dibatalkan')
+                ->distinct()
+                ->count('mitra_id'),
         ];
     }
 
-    private function getRecentActivities(int $limit): array
+    private function kegiatanTerkini(int $tahun): array
     {
-        return DB::table('kegiatan')
-            ->limit($limit)
+        return DB::table('tb_kegiatan')
+            ->where('tahun', (string) $tahun)
+            ->select('id', 'ur_giat', 'tanggal_selesai', 'status')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(5)
             ->get()
-            ->map(fn ($giat) => [
-                'id' => $giat->kd_giat ?? uniqid(),
-                'nama' => $giat->ur_giat,
-                'tenggat' => 'Desember ' . now()->year,
-                'status' => 'Berjalan',
-                'status_color' => 'emerald'
+            ->map(fn ($kegiatan) => [
+                'id' => $kegiatan->id,
+                'nama' => $kegiatan->ur_giat,
+                'tenggat' => $kegiatan->tanggal_selesai
+                    ? Carbon::parse($kegiatan->tanggal_selesai)
+                        ->locale('id')
+                        ->translatedFormat('d F Y')
+                    : 'Belum ditentukan',
+                'status' => match ($kegiatan->status) {
+                    'berjalan' => 'Berjalan',
+                    'selesai' => 'Selesai',
+                    default => 'Draft',
+                },
+                'status_color' => match ($kegiatan->status) {
+                    'berjalan' => 'emerald',
+                    'selesai' => 'blue',
+                    default => 'slate',
+                },
             ])
-            ->toArray();
+            ->all();
     }
 
-    private function getBudgetAbsorption(int $year): array
+    private function ringkasanHonor(int $tahun): array
     {
-        $realisasiHonorDb = DB::table('petugas')
-            ->where('tahun', $year)
-            ->sum('jml_hr');
-
-        $paguTahunanHonor = 500000000;
-        $persenHonor = $paguTahunanHonor > 0 ? (int) round(($realisasiHonorDb / $paguTahunanHonor) * 100) : 0;
+        $hasil = DB::table('tb_kegiatan_petugas')
+            ->where('tahun', (string) $tahun)
+            ->selectRaw("COALESCE(SUM(CASE WHEN status IN ('disetujui', 'dibayar') THEN jml_hr ELSE 0 END), 0) AS total_disetujui")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'dibayar' THEN jml_hr ELSE 0 END), 0) AS total_dibayar")
+            ->first();
 
         return [
-            [
-                'id' => 1,
-                'label' => 'Honorarium Mitra (Petugas)',
-                'persentase' => min($persenHonor, 100),
-                'color' => 'blue'
-            ],
-            [
-                'id' => 2,
-                'label' => 'Perjalanan Dinas (Translok)',
-                'persentase' => 42,
-                'color' => 'amber'
-            ],
-            [
-                'id' => 3,
-                'label' => 'Kegiatan Rapat / FGD',
-                'persentase' => 88,
-                'color' => 'emerald'
-            ],
+            'persentase' => $this->persentase(
+                (float) $hasil->total_dibayar,
+                (float) $hasil->total_disetujui
+            ),
         ];
+    }
+
+    private function ringkasanTranslok(int $tahun): array
+    {
+        $tahunString = (string) $tahun;
+
+        $pagu = (float) DB::table('tb_translok_master')
+            ->where('tahun', $tahunString)
+            ->sum('pagu_anggaran');
+
+        $alokasi = DB::table('tb_translok_alokasi as alokasi')
+            ->join('tb_translok_master as master', 'master.id', '=', 'alokasi.translok_master_id')
+            ->where('master.tahun', $tahunString)
+            ->whereIn('alokasi.status', ['disetujui', 'selesai'])
+            ->selectRaw('COALESCE(SUM(alokasi.volume * master.rate), 0) AS nilai_teralokasi')
+            ->first();
+
+        return [
+            'persentase' => $this->persentase(
+                (float) $alokasi->nilai_teralokasi,
+                $pagu
+            ),
+        ];
+    }
+
+    private function persentase(float $nilai, float $total): int
+    {
+        return $total > 0
+            ? min(100, max(0, (int) round($nilai / $total * 100)))
+            : 0;
     }
 }

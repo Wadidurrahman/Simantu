@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -13,16 +15,15 @@ class User extends Authenticatable
     protected $table = 'users';
 
     protected $fillable = [
-        'nip_lama',
-        'nip_baru',
         'name',
-        'jabatan',
-        'gol',
-        'jk',
         'username',
+        'email',
         'password',
-        'level',
-        'role',
+        'jenis_kelamin',
+        'id_jabatan',
+        'nip',
+        'no_hp',
+        'golongan',
     ];
 
     protected $hidden = [
@@ -31,8 +32,7 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'must_change_password' => 'integer',
-        'level' => 'integer',
+        'password' => 'hashed',
     ];
 
     protected $appends = [
@@ -41,43 +41,74 @@ class User extends Authenticatable
 
     public function getEffectiveRoleAttribute(): string
     {
-        $role = strtolower(trim((string) $this->role));
-
-        if ($role === 'mitra') {
-            return 'mitra';
-        }
-
-        if ($role === 'admin' || (int) $this->level === 1) {
-            return 'admin';
-        }
-
-        if (
-            in_array($role, ['ketua', 'ketua_tim'], true)
-            || (int) $this->level === 9
-        ) {
-            return 'ketua';
-        }
-
-        return 'pegawai';
+        return match ($this->role) {
+            'super_admin' => 'admin',
+            'ketua_tim' => 'ketua',
+            'pimpinan' => 'pimpinan',
+            'operator' => 'operator',
+            'mitra' => 'mitra',
+            default => 'pegawai',
+        };
     }
 
     public function isAdmin(): bool
     {
-        return $this->effective_role === 'admin';
+        return $this->role === 'super_admin';
+    }
+
+    public function isPimpinan(): bool
+    {
+        return $this->role === 'pimpinan';
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->role === 'operator';
     }
 
     public function isKetua(): bool
     {
-        return $this->effective_role === 'ketua';
+        return $this->role === 'ketua_tim';
+    }
+
+    public function isPegawai(): bool
+    {
+        return $this->role === 'pegawai';
     }
 
     public function isMitra(): bool
     {
-        return $this->effective_role === 'mitra';
+        return $this->role === 'mitra';
+    }
+
+    public function isAktif(): bool
+    {
+        return $this->status === 'aktif';
     }
 
     public function canManageKegiatan(): bool
     {
-        return $this->isAdmin() || $this->isKetua();
+        return $this->isAdmin()
+            || $this->isOperator()
+            || $this->isKetua();
+    }
+
+    public function timDipimpin(): HasMany
+    {
+        return $this->hasMany(
+            Tim::class,
+            'ketua_id',
+            'id'
+        );
+    }
+
+    public function timDiikuti(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tim::class,
+            'tb_anggota_tim',
+            'pegawai_id',
+            'tim_id'
+        )->withPivot('id')->withTimestamps();
     }
 }

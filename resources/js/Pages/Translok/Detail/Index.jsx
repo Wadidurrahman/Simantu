@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -30,7 +29,7 @@ const dateText = value => value
 
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-slate-400 focus:ring-slate-100';
 
-export default function Index({ alokasi = [], tahun, bulan }) {
+export default function Index({ alokasi = [], tahun, bulan, canManage = false }) {
     const [search, setSearch] = useState('');
     const [selectedId, setSelectedId] = useState(null);
     const [availability, setAvailability] = useState([]);
@@ -356,8 +355,10 @@ export default function Index({ alokasi = [], tahun, bulan }) {
                                     }
 
                                     const date = `${tahun}-${bulan}-${String(day).padStart(2, '0')}`;
-                                    const enabled = (dateLookup.get(date) || [])
-                                        .some(slot => !slot.taken) && remaining > 0;
+                                    const slotData = dateLookup.get(date) || [];
+                                    const hasAvailableSlots = slotData.some(slot => !slot.taken);
+                                    
+                                    const enabled = (canManage || hasAvailableSlots) && remaining > 0;
 
                                     return (
                                         <button
@@ -394,9 +395,44 @@ export default function Index({ alokasi = [], tahun, bulan }) {
                                     <div className="flex justify-center p-6">
                                         <Loader2 className="animate-spin text-slate-400" />
                                     </div>
+                                ) : !selectedDate ? (
+                                    <div className="py-4 text-center text-sm text-slate-400">
+                                        Pilih tanggal yang tersedia pada kalender.
+                                    </div>
+                                ) : canManage ? (
+                                    <div className="space-y-3">
+                                        <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700">
+                                            <strong className="block font-bold">Mode Penjadwalan Top-Down</strong>
+                                            Sebagai Manager/Admin, Anda dapat memilih jam penugasan secara bebas tanpa dibatasi oleh ketersediaan slot waktu (window) pegawai.
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map(t => (
+                                                <button
+                                                    type="button"
+                                                    key={t}
+                                                    disabled={remaining <= 0}
+                                                    onClick={() => chooseTime(t)}
+                                                    className={`rounded-xl border px-2 py-3 text-center transition ${
+                                                        selectedTime === t
+                                                            ? 'border-slate-900 bg-slate-900 text-white'
+                                                            : 'border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <span className="block text-sm font-bold">{t}</span>
+                                                    <span className="mt-1 block text-[11px]">
+                                                        {selectedTime === t ? 'Dipilih' : 'Tersedia'}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : selectedSlots.length === 0 ? (
+                                    <div className="py-4 text-center text-sm text-slate-400">
+                                        Tidak ada jam tersedia.
+                                    </div>
                                 ) : (
                                     <div className="grid grid-cols-3 gap-2">
-                                        {selectedDate && selectedSlots.map(slot => (
+                                        {selectedSlots.map(slot => (
                                             <button
                                                 type="button"
                                                 key={slot.time}
@@ -422,18 +458,6 @@ export default function Index({ alokasi = [], tahun, bulan }) {
                                                 </span>
                                             </button>
                                         ))}
-
-                                        {!selectedDate && (
-                                            <p className="col-span-3 py-4 text-center text-sm text-slate-400">
-                                                Pilih tanggal yang tersedia.
-                                            </p>
-                                        )}
-
-                                        {selectedDate && selectedSlots.length === 0 && (
-                                            <p className="col-span-3 py-4 text-center text-sm text-slate-400">
-                                                Tidak ada jam tersedia.
-                                            </p>
-                                        )}
                                     </div>
                                 )}
                             </div>
@@ -473,7 +497,7 @@ export default function Index({ alokasi = [], tahun, bulan }) {
                                                     </span>
                                                 </div>
 
-                                                {detail.managed && (
+                                                {(detail.managed || canManage) && (
                                                     <button
                                                         type="button"
                                                         onClick={() => {

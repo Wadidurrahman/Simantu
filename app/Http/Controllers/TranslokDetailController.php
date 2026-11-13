@@ -193,7 +193,7 @@ class TranslokDetailController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
         $this->authorizeAccess($request);
 
@@ -211,8 +211,9 @@ class TranslokDetailController extends Controller
 
         $allocation = $this->allocation($request, $data['id_alokasi']);
         $dateTime = $data['tgl'] . ' ' . $data['jam'] . ':00';
+        $isManager = $this->isManager($request);
 
-        DB::transaction(function () use ($allocation, $data, $dateTime) {
+        DB::transaction(function () use ($allocation, $data, $dateTime, $isManager) {
             $this->lockMutex();
             $this->lockPegawai($allocation->nip_lama);
 
@@ -234,26 +235,31 @@ class TranslokDetailController extends Controller
                 ]);
             }
 
-            if (Carbon::parse($dateTime)->lte(now())) {
+            if (!$isManager && Carbon::parse($dateTime)->lte(now())) {
                 throw ValidationException::withMessages([
                     'tgl' => 'Tidak bisa memesan slot di waktu yang telah lewat.',
                 ]);
             }
 
-            $window = DB::table('translok_booking_windows')
-                ->where('active', true)
-                ->where('date_start', '<=', $data['tgl'])
-                ->where('date_end', '>=', $data['tgl'])
-                ->where('time_start', '<=', $data['jam'] . ':00')
-                ->where('time_end', '>', $data['jam'] . ':00')
-                ->where('deadline', '>', now())
-                ->orderBy('id')
-                ->first();
+            $windowId = null;
 
-            if (!$window) {
-                throw ValidationException::withMessages([
-                    'jam' => 'Slot tidak tersedia atau deadline booking sudah berakhir.',
-                ]);
+            if (!$isManager) {
+                $window = DB::table('translok_booking_windows')
+                    ->where('active', true)
+                    ->where('date_start', '<=', $data['tgl'])
+                    ->where('date_end', '>=', $data['tgl'])
+                    ->where('time_start', '<=', $data['jam'] . ':00')
+                    ->where('time_end', '>', $data['jam'] . ':00')
+                    ->where('deadline', '>', now())
+                    ->orderBy('id')
+                    ->first();
+
+                if (!$window) {
+                    throw ValidationException::withMessages([
+                        'jam' => 'Slot tidak tersedia atau deadline booking sudah berakhir.',
+                    ]);
+                }
+                $windowId = $window->id;
             }
 
             if (
@@ -328,7 +334,7 @@ class TranslokDetailController extends Controller
             ]);
 
             DB::table('translok_booking_slots')->insert([
-                'window_id' => $window->id,
+                'window_id' => $windowId,
                 'id_alokasi' => $a->id,
                 'detail_id' => $detailId,
                 'nip_lama' => $a->nip_lama,

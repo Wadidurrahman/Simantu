@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,9 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    private const TAHUN_AWAL = 2020;
+    private const MAKSIMAL_PERCOBAAN = 5;
+
     public function authorize(): bool
     {
         return true;
@@ -19,8 +23,27 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'login' => ['required', 'string'],
+            'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
+            'tahun' => [
+                'required',
+                'integer',
+                'min:' . self::TAHUN_AWAL,
+                'max:' . (now('Asia/Jakarta')->year + 1),
+            ],
+            'remember' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'login.required' => 'Username, NIP, atau email wajib diisi.',
+            'password.required' => 'Password wajib diisi.',
+            'tahun.required' => 'Tahun anggaran wajib dipilih.',
+            'tahun.integer' => 'Tahun anggaran tidak valid.',
+            'tahun.min' => 'Tahun anggaran belum tersedia.',
+            'tahun.max' => 'Tahun anggaran maksimal satu tahun ke depan.',
         ];
     }
 
@@ -28,18 +51,40 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $loginField = filter_var($this->input('login'), FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $login = trim((string) $this->input('login'));
 
-        $credentials = [
-            $loginField => $this->input('login'),
-            'password' => $this->input('password')
-        ];
+        $pengguna = User::query()
+            ->where('username', $login)
+            ->first();
 
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        if (!$pengguna) {
+            $pengguna = User::query()
+                ->where('nip', $login)
+                ->first();
+        }
+
+        if (!$pengguna && filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            $hasil = User::query()
+                ->where('email', $login)
+                ->limit(2)
+                ->get();
+
+            if ($hasil->count() === 1) {
+                $pengguna = $hasil->first();
+            }
+        }
+
+        $berhasil = $pengguna && Auth::attempt([
+            'id' => $pengguna->id,
+            'status' => 'aktif',
+            'password' => (string) $this->input('password'),
+        ], $this->boolean('remember'));
+
+        if (!$berhasil) {
+            RateLimiter::hit($this->throttleKey(), 60);
 
             throw ValidationException::withMessages([
-                'login' => trans('auth.failed'),
+                'login' => 'Username, NIP, email, atau password tidak sesuai.',
             ]);
         }
 
@@ -48,7 +93,10 @@ class LoginRequest extends FormRequest
 
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!RateLimiter::tooManyAttempts(
+            $this->throttleKey(),
+            self::MAKSIMAL_PERCOBAAN
+        )) {
             return;
         }
 
@@ -57,15 +105,16 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'login' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'login' => "Terlalu banyak percobaan login. Coba lagi dalam {$seconds} detik.",
         ]);
     }
 
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('login')).'|'.$this->ip());
+        $login = Str::lower(
+            trim((string) $this->input('login'))
+        );
+
+        return Str::transliterate($login . '|' . $this->ip());
     }
 }

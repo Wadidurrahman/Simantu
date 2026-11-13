@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -25,11 +24,13 @@ const formatNumber = (value) =>
 const formatCurrency = (value) => `Rp ${formatNumber(value)}`;
 
 const emptyForm = {
-    tim: '',
-    translok: '',
-    vol_awal: '',
+    kegiatan_id: '',
+    tim_id: '',
+    uraian: '',
+    vol_a: '',
     satuan: 'O-K',
     rate: '',
+    status: 'draft',
 };
 
 const inputClass =
@@ -39,6 +40,8 @@ const labelClass = 'mb-1.5 block text-xs font-semibold text-slate-700';
 
 export default function Index({
     giat = [],
+    masterKegiatan = [],
+    timOptions = [],
     tahun,
     canManage = false,
 }) {
@@ -65,29 +68,20 @@ export default function Index({
         [giat]
     );
 
-    const timOptions = useMemo(
-        () => [
-            ...new Set(
-                masters.map((item) => item.tim).filter(Boolean)
-            ),
-        ].sort(),
-        [masters]
-    );
-
     const filtered = useMemo(() => {
         const keyword = search.trim().toLowerCase();
 
         return masters.filter((item) => {
             const matchTim =
-                !filterTim || String(item.tim) === filterTim;
+                !filterTim || String(item.tim_id) === String(filterTim);
 
             const matchSearch =
                 !keyword ||
                 [
                     item.id,
                     item.kd_translok,
-                    item.translok,
-                    item.tim,
+                    item.uraian,
+                    item.kegiatan?.ur_giat,
                     item.satuan,
                 ].some((value) =>
                     String(value ?? '')
@@ -103,18 +97,15 @@ export default function Index({
         () => ({
             total: filtered.length,
             anggaran: filtered.reduce(
-                (sum, item) =>
-                    sum + Number(item.jml_anggaran || 0),
+                (sum, item) => sum + Number(item.pagu_anggaran || 0),
                 0
             ),
             sisaAnggaran: filtered.reduce(
-                (sum, item) =>
-                    sum + Number(item.sisa_anggaran || 0),
+                (sum, item) => sum + Number(item.sisa_anggaran || 0),
                 0
             ),
             volumeAlokasi: filtered.reduce(
-                (sum, item) =>
-                    sum + Number(item.volume_alokasi || 0),
+                (sum, item) => sum + Number(item.volume_teralokasi || 0),
                 0
             ),
         }),
@@ -127,10 +118,9 @@ export default function Index({
     );
 
     const calculation = useMemo(() => {
-        const volume = Number(data.vol_awal) || 0;
+        const volume = Number(data.vol_a) || 0;
         const rate = Number(data.rate) || 0;
-        const allocated =
-            Number(selected?.volume_alokasi) || 0;
+        const allocated = Number(selected?.volume_teralokasi) || 0;
         const remaining = volume - allocated;
 
         return {
@@ -139,7 +129,7 @@ export default function Index({
             remaining,
             sisaAnggaran: remaining * rate,
         };
-    }, [data.vol_awal, data.rate, selected]);
+    }, [data.vol_a, data.rate, selected]);
 
     const showAdd = () => {
         setEditing(null);
@@ -153,11 +143,13 @@ export default function Index({
         clearErrors();
 
         setData({
-            tim: item.tim || '',
-            translok: item.translok || '',
-            vol_awal: item.vol_awal,
+            kegiatan_id: item.kegiatan_id || '',
+            tim_id: item.tim_id || '',
+            uraian: item.uraian || '',
+            vol_a: item.vol_a || '',
             satuan: item.satuan || '',
-            rate: item.rate,
+            rate: item.rate || '',
+            status: item.status || 'draft',
         });
 
         setModalOpen(true);
@@ -184,15 +176,9 @@ export default function Index({
         };
 
         if (editing !== null) {
-            put(
-                route('translok.master.update', editing),
-                options
-            );
+            put(route('translok.master.update', editing), options);
         } else {
-            post(
-                route('translok.master.store'),
-                options
-            );
+            post(route('translok.master.store'), options);
         }
     };
 
@@ -202,19 +188,16 @@ export default function Index({
         setDeleteProcessing(true);
         setDeleteError('');
 
-        router.delete(
-            route('translok.master.destroy', deleting.id),
-            {
-                preserveScroll: true,
-                onSuccess: () => setDeleting(null),
-                onError: (response) =>
-                    setDeleteError(
-                        Object.values(response || {}).join(' ') ||
-                        'Gagal menghapus Master Translok.'
-                    ),
-                onFinish: () => setDeleteProcessing(false),
-            }
-        );
+        router.delete(route('translok.master.destroy', deleting.id), {
+            preserveScroll: true,
+            onSuccess: () => setDeleting(null),
+            onError: (response) =>
+                setDeleteError(
+                    Object.values(response || {}).join(' ') ||
+                    'Gagal menghapus Master Translok.'
+                ),
+            onFinish: () => setDeleteProcessing(false),
+        });
     };
 
     const resetFilter = () => {
@@ -244,6 +227,12 @@ export default function Index({
             icon: CheckCircle2,
         },
     ];
+
+    // Helper untuk mencari nama tim
+    const getNamaTim = (timId) => {
+        const tim = timOptions.find(t => String(t.id) === String(timId));
+        return tim ? tim.nama_tim : timId;
+    };
 
     return (
         <AuthenticatedLayout>
@@ -317,10 +306,10 @@ export default function Index({
 
                                 <input
                                     value={search}
-                                    onChange={(event) =>
-                                        setSearch(event.target.value)
-                                    }
-                                    placeholder="Cari kegiatan atau kode..."
+                                    onChange={(event) => {
+                                        setSearch(event.target.value);
+                                    }}
+                                    placeholder="Cari uraian atau kode..."
                                     className={`${inputClass} pl-10`}
                                 />
                             </div>
@@ -330,13 +319,12 @@ export default function Index({
                                 onChange={(event) =>
                                     setFilterTim(event.target.value)
                                 }
-                                className={`${inputClass} sm:w-36`}
+                                className={`${inputClass} sm:w-48`}
                             >
                                 <option value="">Semua Tim</option>
-
-                                {timOptions.map((value) => (
-                                    <option key={value} value={value}>
-                                        Tim {value}
+                                {timOptions.map((tim) => (
+                                    <option key={tim.id} value={tim.id}>
+                                        {tim.nama_tim}
                                     </option>
                                 ))}
                             </select>
@@ -406,16 +394,21 @@ export default function Index({
                                         >
                                             <td className="max-w-sm px-4 py-3">
                                                 <p className="font-medium leading-relaxed text-slate-800">
-                                                    {item.translok || '-'}
+                                                    {item.uraian || '-'}
                                                 </p>
 
                                                 <p className="mt-1 text-xs text-slate-400">
-                                                    Kode {item.kd_translok || '-'} · Tim {item.tim || '-'}
+                                                    Kode {item.kd_translok || '-'} · {getNamaTim(item.tim_id)}
                                                 </p>
+                                                {item.kegiatan && (
+                                                    <p className="mt-0.5 text-[11px] text-slate-400">
+                                                        Kegiatan: {item.kegiatan.ur_giat}
+                                                    </p>
+                                                )}
                                             </td>
 
                                             <td className="px-4 py-3 text-right tabular-nums">
-                                                {formatNumber(item.vol_awal)}
+                                                {formatNumber(item.vol_a)}
                                             </td>
 
                                             <td className="px-4 py-3">
@@ -427,15 +420,15 @@ export default function Index({
                                             </td>
 
                                             <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">
-                                                {formatNumber(item.jml_anggaran)}
+                                                {formatNumber(item.pagu_anggaran)}
                                             </td>
 
                                             <td className="px-4 py-3 text-right tabular-nums">
-                                                {formatNumber(item.volume_alokasi)}
+                                                {formatNumber(item.volume_teralokasi)}
                                             </td>
 
                                             <td className="px-4 py-3 text-right tabular-nums">
-                                                {formatNumber(item.sisa_vol)}
+                                                {formatNumber(item.sisa_volume)}
                                             </td>
 
                                             <td className="px-4 py-3 text-right tabular-nums">
@@ -519,77 +512,84 @@ export default function Index({
                             onSubmit={submit}
                             className="space-y-4 overflow-y-auto p-5"
                         >
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <div>
-                                    <label className={labelClass}>
-                                        Kode Tim
-                                    </label>
+                            <div>
+                                <label className={labelClass}>
+                                    Pilih Tim <span className="text-red-500">*</span>
+                                </label>
 
-                                    <input
-                                        required
-                                        maxLength={2}
-                                        disabled={editing !== null}
-                                        value={data.tim}
-                                        onChange={(event) =>
-                                            setData('tim', event.target.value)
-                                        }
-                                        placeholder="Contoh: 02"
-                                        className={inputClass}
-                                    />
+                                <select
+                                    required
+                                    value={data.tim_id}
+                                    onChange={(event) =>
+                                        setData('tim_id', event.target.value)
+                                    }
+                                    className={inputClass}
+                                >
+                                    <option value="">-- Pilih Tim --</option>
+                                    {timOptions.map((tim) => (
+                                        <option key={tim.id} value={tim.id}>
+                                            {tim.nama_tim}
+                                        </option>
+                                    ))}
+                                </select>
 
-                                    {errors.tim && (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {errors.tim}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className={labelClass}>
-                                        Satuan
-                                    </label>
-
-                                    <input
-                                        required
-                                        maxLength={100}
-                                        disabled={editing !== null}
-                                        value={data.satuan}
-                                        onChange={(event) =>
-                                            setData('satuan', event.target.value)
-                                        }
-                                        placeholder="Contoh: O-K"
-                                        className={inputClass}
-                                    />
-
-                                    {errors.satuan && (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {errors.satuan}
-                                        </p>
-                                    )}
-                                </div>
+                                {errors.tim_id && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {errors.tim_id}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
                                 <label className={labelClass}>
-                                    Uraian Perjalanan Dinas
+                                    Pilih Kegiatan Induk <span className="text-slate-400 font-normal">(Opsional, jika terikat kegiatan)</span>
+                                </label>
+
+                                <select
+                                    value={data.kegiatan_id}
+                                    onChange={(event) =>
+                                        setData('kegiatan_id', event.target.value)
+                                    }
+                                    className={inputClass}
+                                >
+                                    <option value="">-- Tidak Terikat Kegiatan Khusus --</option>
+                                    {masterKegiatan
+                                        // Jika tim sudah dipilih, filter kegiatan yang sesuai tim tersebut
+                                        .filter(k => !data.tim_id || String(k.tim_id) === String(data.tim_id))
+                                        .map((kegiatan) => (
+                                        <option key={kegiatan.id} value={kegiatan.id}>
+                                            [{kegiatan.kd_giat}] {kegiatan.ur_giat}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {errors.kegiatan_id && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {errors.kegiatan_id}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>
+                                    Uraian Perjalanan Dinas <span className="text-red-500">*</span>
                                 </label>
 
                                 <textarea
                                     required
                                     rows={3}
                                     maxLength={255}
-                                    disabled={editing !== null}
-                                    value={data.translok}
+                                    value={data.uraian}
                                     onChange={(event) =>
-                                        setData('translok', event.target.value)
+                                        setData('uraian', event.target.value)
                                     }
-                                    placeholder="Masukkan uraian kegiatan perjalanan dinas..."
+                                    placeholder="Contoh: Perjalanan dinas survei lapangan bulan Januari..."
                                     className={`${inputClass} resize-none`}
                                 />
 
-                                {errors.translok && (
+                                {errors.uraian && (
                                     <p className="mt-1 text-xs text-red-600">
-                                        {errors.translok}
+                                        {errors.uraian}
                                     </p>
                                 )}
                             </div>
@@ -597,7 +597,7 @@ export default function Index({
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label className={labelClass}>
-                                        Volume Awal
+                                        Volume Awal <span className="text-red-500">*</span>
                                     </label>
 
                                     <input
@@ -605,23 +605,23 @@ export default function Index({
                                         min="1"
                                         step="1"
                                         required
-                                        value={data.vol_awal}
+                                        value={data.vol_a}
                                         onChange={(event) =>
-                                            setData('vol_awal', event.target.value)
+                                            setData('vol_a', event.target.value)
                                         }
                                         className={inputClass}
                                     />
 
-                                    {errors.vol_awal && (
+                                    {errors.vol_a && (
                                         <p className="mt-1 text-xs text-red-600">
-                                            {errors.vol_awal}
+                                            {errors.vol_a}
                                         </p>
                                     )}
                                 </div>
 
                                 <div>
                                     <label className={labelClass}>
-                                        Rate (Rp)
+                                        Rate / Satuan (Rp) <span className="text-red-500">*</span>
                                     </label>
 
                                     <input
@@ -642,6 +642,29 @@ export default function Index({
                                         </p>
                                     )}
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>
+                                    Satuan <span className="text-red-500">*</span>
+                                </label>
+
+                                <input
+                                    required
+                                    maxLength={30}
+                                    value={data.satuan}
+                                    onChange={(event) =>
+                                        setData('satuan', event.target.value)
+                                    }
+                                    placeholder="Contoh: O-K"
+                                    className={inputClass}
+                                />
+
+                                {errors.satuan && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {errors.satuan}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -677,13 +700,18 @@ export default function Index({
                             {calculation.remaining < 0 && (
                                 <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
                                     <AlertTriangle size={16} />
-                                    Volume awal tidak boleh lebih kecil daripada total alokasi.
+                                    Volume awal tidak boleh lebih kecil daripada total alokasi yang sudah berjalan.
                                 </div>
                             )}
 
                             {Object.keys(errors).length > 0 && (
                                 <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs text-red-700">
-                                    {Object.values(errors).join(' ')}
+                                    <p className="font-semibold mb-1">Terdapat kesalahan:</p>
+                                    <ul className="list-disc pl-4">
+                                        {Object.values(errors).map((err, idx) => (
+                                            <li key={idx}>{err}</li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
 
@@ -721,7 +749,7 @@ export default function Index({
                         </div>
 
                         <p className="text-sm leading-relaxed text-slate-600">
-                            Kegiatan <strong>{deleting.kd_translok}</strong> akan dihapus.
+                            Kegiatan dengan kode <strong>{deleting.kd_translok}</strong> akan dihapus.
                             Master yang sudah memiliki alokasi atau detail perjalanan
                             tidak dapat dihapus.
                         </p>

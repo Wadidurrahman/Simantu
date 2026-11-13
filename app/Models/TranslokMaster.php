@@ -2,63 +2,95 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TranslokMaster extends Model
 {
     use HasFactory;
 
-    protected $table = 'translok_masters';
+    protected $table = 'tb_translok_master';
 
     protected $fillable = [
         'tahun',
-        'kd_translok',
+        'tim_id',
         'kegiatan_id',
-        'vol_awal',
+        'kd_translok',
+        'uraian',
+        'vol_a',
         'satuan',
         'rate',
-        'jml_anggaran',
-        'realisasi_vol',
-        'sisa_vol',
-        'sisa_anggaran',
+        'status',
+        'legacy_id',
+        'created_by',
     ];
 
     protected $casts = [
-        'tahun' => 'integer',
+        'tahun' => 'string',
+        'tim_id' => 'integer',
         'kegiatan_id' => 'integer',
-        'vol_awal' => 'integer',
+        'vol_a' => 'integer',
         'rate' => 'decimal:2',
-        'jml_anggaran' => 'decimal:2',
-        'realisasi_vol' => 'integer',
-        'sisa_vol' => 'integer',
-        'sisa_anggaran' => 'decimal:2',
+        'created_by' => 'integer',
     ];
+
+    protected $appends = ['pagu_anggaran'];
+
+    /**
+     * Virtual attribute untuk pagu_anggaran (vol_a * rate)
+     */
+    protected function paguAnggaran(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value, array $attributes) =>
+                isset($attributes['vol_a'], $attributes['rate'])
+                    ? (float) $attributes['vol_a'] * (float) $attributes['rate']
+                    : 0,
+        );
+    }
+
+    public function tim(): BelongsTo
+    {
+        return $this->belongsTo(Tim::class, 'tim_id');
+    }
 
     public function kegiatan(): BelongsTo
     {
         return $this->belongsTo(Kegiatan::class, 'kegiatan_id');
     }
 
-    protected static function booted(): void
+    public function pembuat(): BelongsTo
     {
-        static::saving(function (self $translok) {
-            $volume = (int) $translok->vol_awal;
-            $realisasi = (int) ($translok->realisasi_vol ?? 0);
-            $rate = (float) $translok->rate;
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
-            if ($volume < 0 || $realisasi < 0 || $realisasi > $volume) {
-                throw new \InvalidArgumentException(
-                    'Volume dan realisasi Translok tidak valid.'
-                );
-            }
+    public function alokasi(): HasMany
+    {
+        return $this->hasMany(
+            TranslokAlokasi::class,
+            'translok_master_id'
+        );
+    }
 
-            $sisaVolume = $volume - $realisasi;
+    public function scopeTahun(Builder $query, int $tahun): Builder
+    {
+        return $query->where('tahun', (string) $tahun);
+    }
 
-            $translok->jml_anggaran = round($volume * $rate, 2);
-            $translok->sisa_vol = $sisaVolume;
-            $translok->sisa_anggaran = round($sisaVolume * $rate, 2);
-        });
+    public function scopeAktif(Builder $query): Builder
+    {
+        return $query->where('status', 'aktif');
+    }
+
+    public function scopeBelumDitutup(Builder $query): Builder
+    {
+        return $query->whereIn('status', [
+            'draft',
+            'aktif',
+        ]);
     }
 }

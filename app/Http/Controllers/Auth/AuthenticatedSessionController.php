@@ -13,32 +13,48 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
+    private const TAHUN_AWAL = 2020;
+
     public function create(): Response
     {
+        $tahunSekarang = now('Asia/Jakarta')->year;
+
+        $tahunOptions = collect(range(self::TAHUN_AWAL, $tahunSekarang + 2))
+            ->reverse()
+            ->map(fn (int $tahun) => [
+                'value' => $tahun,
+                'label' => (string) $tahun,
+                'disabled' => $tahun > $tahunSekarang + 1,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'tahunOptions' => $tahunOptions,
+            'tahunDefault' => $tahunSekarang,
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
+
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $request->session()->put(
+            'tahun_aktif',
+            (int) $request->validated('tahun')
+        );
+
+        return redirect()->intended(
+            route('dashboard', absolute: false)
+        );
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
+
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
