@@ -21,13 +21,12 @@ const navigationItems = [
         name: 'Perjalanan Dinas', icon: Map, roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'],
         children: [
             { name: 'Master Translok', routeName: 'translok.master.index', roles: ['admin', 'ketua', 'ketua_tim'] },
-            { name: 'Jadwal & Booking', routeName: 'translok.booking.index', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
             { name: 'Alokasi Translok', routeName: 'translok.alokasi', roles: ['admin', 'ketua', 'ketua_tim'] },
             { name: 'Detail Perjalanan', routeName: 'translok.detail', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
         ]
     },
     {
-        name: 'Honorarium & Mitra', icon: Users, roles: ['admin', 'ketua', 'ketua_tim'],
+        name: 'Mitra', icon: Users, roles: ['admin', 'ketua', 'ketua_tim'],
         children: [
             { name: 'Data Mitra BPS', routeName: 'mitra.index', roles: ['admin', 'ketua', 'ketua_tim'] },
             { name: 'Alokasi Honor', routeName: 'honor.index', roles: ['admin', 'ketua', 'ketua_tim'] },

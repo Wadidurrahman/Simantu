@@ -2,33 +2,102 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Membuat akun Super Admin
-        User::create([
-            'name' => 'Super Administrator',
-            'nip_baru' => '198001012005011001',
-            'username' => 'superadmin',
-            'email' => 'admin@bps.go.id',
-            'password' => md5('12345678'), // Password di-MD5 sesuai sistem lama
-            'level' => 1, // Misal 1 untuk Super Admin
-            'must_change_password' => true, // Memaksa admin ganti password juga saat pertama login
-        ]);
+        // Matikan sementara pengecekan Foreign Key agar bisa mengosongkan tabel
+        Schema::disableForeignKeyConstraints();
 
-        // Membuat akun Pegawai Biasa
-        User::create([
-            'name' => 'Wadidur Rahman',
-            'nip_baru' => '199512212019032001',
-            'username' => 'wadidur',
-            'email' => 'wadidur@bps.go.id',
-            'password' => md5('12345678'),
-            'level' => 2, // 2 untuk Pegawai
-            'must_change_password' => true,
-        ]);
+        // Kosongkan tabel users
+        DB::table('users')->truncate();
+
+        // Nyalakan kembali pengecekan Foreign Key
+        Schema::enableForeignKeyConstraints();
+
+        // Gunakan password default (Nanti Middleware SIMANTU akan mendeteksi ini
+        // untuk memaksa user ganti password saat login pertama kali)
+        $defaultPassword = Hash::make('bps12345');
+        $now = now();
+
+        $users = [
+            [
+                'name' => 'Super Admin',
+                'username' => 'superadmin',
+                'role' => 'super_admin',
+                'nip' => '198001012005011001',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'name' => 'Bapak Pimpinan',
+                'username' => 'pimpinan',
+                'role' => 'pimpinan',
+                'nip' => '197502022000031002',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'name' => 'Mbak Operator',
+                'username' => 'operator',
+                'role' => 'operator',
+                'nip' => '198503032010122003',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'name' => 'Ketua Tim Satu',
+                'username' => 'ketuatim1',
+                'role' => 'ketua_tim',
+                'nip' => '199004042015051004',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'name' => 'Ketua Tim Dua',
+                'username' => 'ketuatim2',
+                'role' => 'ketua_tim',
+                'nip' => '199105052016061005',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'name' => 'Pegawai Satu',
+                'username' => 'pegawai1',
+                'role' => 'pegawai',
+                'nip' => '199506062020121006',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'name' => 'Pegawai Dua',
+                'username' => 'pegawai2',
+                'role' => 'pegawai',
+                'nip' => '199607072021012007',
+                'password' => $defaultPassword,
+                'status' => 'aktif',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        ];
+
+        DB::table('users')->insert($users);
     }
 }

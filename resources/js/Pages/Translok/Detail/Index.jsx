@@ -36,15 +36,14 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState('');
     const [selectedDate, setSelectedDate] = useState('');
-    const [selectedTime, setSelectedTime] = useState('');
     const [cancelItem, setCancelItem] = useState(null);
     const [cancelError, setCancelError] = useState('');
     const [cancelBusy, setCancelBusy] = useState(false);
 
     const { data, setData, post, processing, errors, clearErrors } = useForm({
-        id_alokasi: '',
-        tgl: '',
-        jam: '',
+        translok_alokasi_id: '',
+        tanggal: '',
+        catatan: '',
     });
 
     const items = Array.isArray(alokasi) ? alokasi : [];
@@ -54,13 +53,13 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
         const keyword = search.trim().toLowerCase();
 
         return items.filter(item =>
-            [item.nama, item.translok, item.nip_lama, item.kd_translok]
+            [item.nama, item.uraian, item.nip, item.kd_translok]
                 .some(value => String(value || '').toLowerCase().includes(keyword))
         );
     }, [items, search]);
 
     const dateLookup = useMemo(
-        () => new Map(availability.map(item => [item.date, item.slots])),
+        () => new Map(availability.map(item => [item.date, item.taken])),
         [availability]
     );
 
@@ -73,10 +72,8 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
         ...Array.from({ length: countDays }, (_, index) => index + 1),
     ];
 
-    const selectedSlots = dateLookup.get(selectedDate) || [];
-
     const remaining = selected
-        ? Number(selected.vol) - Number(selected.realisasi)
+        ? Number(selected.volume) - Number(selected.jumlah_detail)
         : 0;
 
     const refresh = async id => {
@@ -89,7 +86,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                 window.location.origin
             );
 
-            url.searchParams.set('id_alokasi', id);
+            url.searchParams.set('translok_alokasi_id', id);
 
             const response = await fetch(url.toString(), {
                 credentials: 'same-origin',
@@ -100,7 +97,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
             });
 
             if (!response.ok) {
-                throw new Error('Gagal memuat ketersediaan slot.');
+                throw new Error('Gagal memuat ketersediaan tanggal.');
             }
 
             const result = await response.json();
@@ -117,13 +114,12 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
     const showModal = item => {
         setSelectedId(item.id);
         setSelectedDate('');
-        setSelectedTime('');
         clearErrors();
 
         setData({
-            id_alokasi: item.id,
-            tgl: '',
-            jam: '',
+            translok_alokasi_id: item.id,
+            tanggal: '',
+            catatan: '',
         });
 
         refresh(item.id);
@@ -135,35 +131,23 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
         setSelectedId(null);
         setAvailability([]);
         setSelectedDate('');
-        setSelectedTime('');
         clearErrors();
     };
 
     const chooseDate = date => {
         setSelectedDate(date);
-        setSelectedTime('');
 
         setData({
-            id_alokasi: selected.id,
-            tgl: date,
-            jam: '',
-        });
-    };
-
-    const chooseTime = time => {
-        setSelectedTime(time);
-
-        setData({
-            id_alokasi: selected.id,
-            tgl: selectedDate,
-            jam: time,
+            translok_alokasi_id: selected.id,
+            tanggal: date,
+            catatan: selected.uraian || '',
         });
     };
 
     const book = event => {
         event.preventDefault();
 
-        if (!selected || !selectedTime || !selectedDate || remaining <= 0) {
+        if (!selected || !selectedDate || remaining <= 0) {
             return;
         }
 
@@ -173,7 +157,6 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                 setSelectedId(null);
                 setAvailability([]);
                 setSelectedDate('');
-                setSelectedTime('');
             },
             onError: () => refresh(selected.id),
         });
@@ -194,7 +177,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
             onError: response => {
                 setCancelError(
                     Object.values(response || {}).join(' ') ||
-                    'Gagal membatalkan booking.'
+                    'Gagal membatalkan detail.'
                 );
             },
             onFinish: () => setCancelBusy(false),
@@ -212,14 +195,14 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                             Detail Perjalanan
                         </h1>
                         <p className="mt-1 text-sm text-slate-500">
-                            Pilih tanggal dan jam melalui popup booking.
+                            Pilih tanggal pelaksanaan perjalanan dinas pegawai tahun {tahun}
                         </p>
                     </div>
 
                     <select
                         value={bulan}
                         onChange={event => router.get(
-                            route('translok.detail'),
+                            route('translok.detail.index'),
                             { bulan: event.target.value },
                             { preserveScroll: true }
                         )}
@@ -236,8 +219,8 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                     {[
                         ['Total Alokasi', items.length],
-                        ['Total Volume', items.reduce((sum, item) => sum + Number(item.vol), 0)],
-                        ['Tanggal Tercatat', items.reduce((sum, item) => sum + Number(item.realisasi), 0)],
+                        ['Total Volume', items.reduce((sum, item) => sum + Number(item.volume), 0)],
+                        ['Realisasi Tercatat', items.reduce((sum, item) => sum + Number(item.jumlah_detail), 0)],
                     ].map(([label, value]) => (
                         <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
                             <p className="text-xs text-slate-500">{label}</p>
@@ -255,7 +238,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                         <input
                             value={search}
                             onChange={event => setSearch(event.target.value)}
-                            placeholder="Cari pegawai atau Translok..."
+                            placeholder="Cari pegawai atau kegiatan Translok..."
                             className={`${field} pl-10`}
                         />
                     </div>
@@ -274,14 +257,14 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                             >
                                 <div className="min-w-0">
                                     <p className="font-semibold text-slate-900">
-                                        {item.nama}
+                                        {item.nama} <span className="text-xs font-normal text-slate-400">({item.nip})</span>
                                     </p>
                                     <p className="mt-1 text-sm text-slate-600">
-                                        {item.translok}
+                                        {item.uraian} <span className="text-xs font-semibold text-slate-400">[{item.kd_translok}]</span>
                                     </p>
                                     <p className="mt-1 text-xs text-slate-400">
-                                        {dateText(item.jadwal_a)} – {dateText(item.jadwal_b)}
-                                        {' · '}Volume {item.realisasi}/{item.vol}
+                                        Periode: {dateText(item.tanggal_mulai)} s.d. {dateText(item.tanggal_selesai)}
+                                        {' · '}Realisasi: {item.jumlah_detail} / {item.volume} volume
                                     </p>
                                 </div>
 
@@ -291,7 +274,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                                 >
                                     <CalendarPlus size={16} />
-                                    Pilih Jadwal
+                                    Pilih Tanggal
                                 </button>
                             </div>
                         ))}
@@ -305,10 +288,10 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                         <div className="flex items-start justify-between border-b border-slate-100 p-4">
                             <div>
                                 <h2 className="font-bold text-slate-900">
-                                    Pilih Jadwal Perjalanan
+                                    Pilih Tanggal Perjalanan Dinas
                                 </h2>
                                 <p className="mt-1 text-xs text-slate-500">
-                                    {selected.nama} · Sisa {Math.max(0, remaining)} volume
+                                    {selected.nama} · Sisa kuota: {Math.max(0, remaining)} volume
                                 </p>
                             </div>
 
@@ -324,8 +307,8 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
 
                         <div className="space-y-4 overflow-y-auto p-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-bold">
-                                    {months[Number(bulan) - 1]} {tahun}
+                                <h3 className="text-sm font-bold text-slate-800">
+                                    Kalender {months[Number(bulan) - 1]} {tahun}
                                 </h3>
 
                                 <button
@@ -335,7 +318,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 disabled:opacity-50"
                                 >
                                     <RefreshCcw size={14} />
-                                    Perbarui Slot
+                                    Muat Ulang
                                 </button>
                             </div>
 
@@ -355,10 +338,9 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                     }
 
                                     const date = `${tahun}-${bulan}-${String(day).padStart(2, '0')}`;
-                                    const slotData = dateLookup.get(date) || [];
-                                    const hasAvailableSlots = slotData.some(slot => !slot.taken);
-                                    
-                                    const enabled = (canManage || hasAvailableSlots) && remaining > 0;
+                                    const isTaken = dateLookup.get(date) || false;
+                                    const isWeekend = index % 7 >= 5; // Sabtu & Minggu
+                                    const enabled = !isWeekend && !isTaken && remaining > 0;
 
                                     return (
                                         <button
@@ -366,100 +348,18 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                             key={date}
                                             disabled={!enabled || loading}
                                             onClick={() => chooseDate(date)}
-                                            className={`aspect-square rounded-lg border text-sm font-semibold transition ${
+                                            className={`aspect-square rounded-xl border text-sm font-semibold transition ${
                                                 selectedDate === date
                                                     ? 'border-slate-900 bg-slate-900 text-white'
                                                     : enabled
-                                                        ? 'border-slate-200 text-slate-800 hover:bg-slate-100'
-                                                        : 'border-slate-100 bg-slate-50 text-slate-300'
+                                                    ? 'border-slate-200 text-slate-800 hover:bg-slate-100'
+                                                    : 'border-slate-100 bg-slate-50 text-slate-300'
                                             }`}
                                         >
                                             {day}
                                         </button>
                                     );
                                 })}
-                            </div>
-
-                            <div className="border-t border-slate-100 pt-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <h3 className="flex items-center gap-2 text-sm font-bold">
-                                        <Clock3 size={16} />
-                                        Jam Tersedia
-                                    </h3>
-                                    <span className="text-xs text-slate-500">
-                                        {selectedDate ? dateText(selectedDate) : 'Pilih tanggal dulu'}
-                                    </span>
-                                </div>
-
-                                {loading ? (
-                                    <div className="flex justify-center p-6">
-                                        <Loader2 className="animate-spin text-slate-400" />
-                                    </div>
-                                ) : !selectedDate ? (
-                                    <div className="py-4 text-center text-sm text-slate-400">
-                                        Pilih tanggal yang tersedia pada kalender.
-                                    </div>
-                                ) : canManage ? (
-                                    <div className="space-y-3">
-                                        <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700">
-                                            <strong className="block font-bold">Mode Penjadwalan Top-Down</strong>
-                                            Sebagai Manager/Admin, Anda dapat memilih jam penugasan secara bebas tanpa dibatasi oleh ketersediaan slot waktu (window) pegawai.
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map(t => (
-                                                <button
-                                                    type="button"
-                                                    key={t}
-                                                    disabled={remaining <= 0}
-                                                    onClick={() => chooseTime(t)}
-                                                    className={`rounded-xl border px-2 py-3 text-center transition ${
-                                                        selectedTime === t
-                                                            ? 'border-slate-900 bg-slate-900 text-white'
-                                                            : 'border-slate-200 hover:bg-slate-50'
-                                                    }`}
-                                                >
-                                                    <span className="block text-sm font-bold">{t}</span>
-                                                    <span className="mt-1 block text-[11px]">
-                                                        {selectedTime === t ? 'Dipilih' : 'Tersedia'}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : selectedSlots.length === 0 ? (
-                                    <div className="py-4 text-center text-sm text-slate-400">
-                                        Tidak ada jam tersedia.
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {selectedSlots.map(slot => (
-                                            <button
-                                                type="button"
-                                                key={slot.time}
-                                                disabled={slot.taken || remaining <= 0}
-                                                onClick={() => chooseTime(slot.time)}
-                                                className={`rounded-xl border px-2 py-3 text-center transition ${
-                                                    slot.taken
-                                                        ? 'border-slate-100 bg-slate-50 text-slate-400'
-                                                        : selectedTime === slot.time
-                                                            ? 'border-slate-900 bg-slate-900 text-white'
-                                                            : 'border-slate-200 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                <span className="block text-sm font-bold">
-                                                    {slot.time}
-                                                </span>
-                                                <span className="mt-1 block text-[11px]">
-                                                    {slot.taken
-                                                        ? 'Terisi'
-                                                        : selectedTime === slot.time
-                                                            ? 'Dipilih'
-                                                            : 'Tersedia'}
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
 
                             {loadError && (
@@ -476,7 +376,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
 
                             <div className="border-t border-slate-100 pt-4">
                                 <h3 className="mb-2 text-xs font-bold text-slate-500">
-                                    Booking yang Sudah Tercatat
+                                    Daftar Tanggal Perjalanan Tercatat
                                 </h3>
 
                                 <div className="space-y-2">
@@ -487,33 +387,32 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                                 className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
                                             >
                                                 <div className="text-xs">
-                                                    <span className="font-semibold">
-                                                        {dateText(detail.tgl)}
+                                                    <span className="font-semibold text-slate-800">
+                                                        {dateText(detail.tanggal)}
                                                     </span>
-                                                    <span className="ml-2 text-slate-500">
-                                                        {detail.jam
-                                                            ? `${detail.jam} WIB`
-                                                            : 'Riwayat tanpa jam'}
-                                                    </span>
+                                                    {detail.catatan && (
+                                                        <span className="ml-2 text-slate-500">
+                                                            ({detail.catatan})
+                                                        </span>
+                                                    )}
                                                 </div>
 
-                                                {(detail.managed || canManage) && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setCancelItem(detail);
-                                                            setCancelError('');
-                                                        }}
-                                                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCancelItem(detail);
+                                                        setCancelError('');
+                                                    }}
+                                                    className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                                                    title="Batalkan Tanggal"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         ))
                                     ) : (
                                         <p className="text-xs text-slate-400">
-                                            Belum ada booking.
+                                            Belum ada tanggal perjalanan yang dipilih pada bulan ini.
                                         </p>
                                     )}
                                 </div>
@@ -525,23 +424,22 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                             className="flex items-center justify-between gap-3 border-t border-slate-100 bg-white p-4"
                         >
                             <p className="text-xs text-slate-500">
-                                {selectedDate && selectedTime
-                                    ? `${dateText(selectedDate)} · ${selectedTime} WIB`
-                                    : 'Belum memilih slot'}
+                                {selectedDate
+                                    ? `Dipilih: ${dateText(selectedDate)}`
+                                    : 'Belum memilih tanggal'}
                             </p>
 
                             <button
                                 type="submit"
                                 disabled={
                                     !selectedDate ||
-                                    !selectedTime ||
                                     processing ||
                                     loading ||
                                     remaining <= 0
                                 }
                                 className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
                             >
-                                {processing ? 'Memesan...' : 'Konfirmasi Jadwal'}
+                                {processing ? 'Menyimpan...' : 'Simpan Perjalanan'}
                             </button>
                         </form>
                     </div>
@@ -550,19 +448,18 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
 
             {cancelItem && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white p-5">
-                        <h2 className="flex items-center gap-2 font-bold">
+                    <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+                        <h2 className="flex items-center gap-2 font-bold text-slate-900">
                             <AlertTriangle size={18} className="text-red-600" />
-                            Batalkan perjalanan?
+                            Batalkan Tanggal Perjalanan?
                         </h2>
 
                         <p className="mt-3 text-sm text-slate-600">
-                            {dateText(cancelItem.tgl)} {cancelItem.jam || ''}.
-                            Slot akan tersedia kembali untuk pegawai lain.
+                            Tanggal <strong>{dateText(cancelItem.tanggal)}</strong> akan dihapus dan volume alokasi akan dikembalikan.
                         </p>
 
                         {cancelError && (
-                            <p className="mt-2 text-xs text-red-600">
+                            <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-600">
                                 {cancelError}
                             </p>
                         )}
@@ -572,7 +469,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                 type="button"
                                 disabled={cancelBusy}
                                 onClick={() => setCancelItem(null)}
-                                className="rounded-lg border px-4 py-2 text-sm"
+                                className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700"
                             >
                                 Kembali
                             </button>
@@ -581,9 +478,9 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                 type="button"
                                 disabled={cancelBusy}
                                 onClick={cancel}
-                                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+                                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                             >
-                                Batalkan Booking
+                                {cancelBusy ? 'Memproses...' : 'Ya, Batalkan'}
                             </button>
                         </div>
                     </div>

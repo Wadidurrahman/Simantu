@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
                     );
                 }
 
-                $kataSandi = 'Uji!' . bin2hex(random_bytes(10));
+                $kataSandi = 'bps12345';
 
                 $pengguna ??= new User();
 
@@ -117,14 +117,9 @@ class DatabaseSeeder extends Seeder
         });
 
         $this->command?->info('Akun pengujian SIMANTU berhasil disiapkan.');
-
-        foreach ($kredensial as $akun) {
-            $this->command?->line(
-                $akun['username'] . ' | ' .
-                $akun['role'] . ' | ' .
-                $akun['nip'] . ' | ' .
-                $akun['password']
-            );
-        }
+        $this->command?->table(
+            ['Username', 'Role', 'NIP', 'Password'],
+            $kredensial
+        );
     }
 }

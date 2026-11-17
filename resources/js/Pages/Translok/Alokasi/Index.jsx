@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -24,11 +23,12 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         bulan: String(bulan).padStart(2, '0'),
-        id_translok: '',
-        nip_lama: '',
-        jadwal_a: '',
-        jadwal_b: '',
-        vol: 1,
+        translok_master_id: '',
+        pegawai_id: '',
+        tanggal_mulai: '',
+        tanggal_selesai: '',
+        volume: 1,
+        catatan: '',
     });
 
     const teams = useMemo(() => [...new Set(masters.map(item => item.tim).filter(Boolean))].sort(), [masters]);
@@ -39,7 +39,7 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
         return alokasi.filter(item => {
             const matchTim = !filterTim || item.tim === filterTim;
             const matchSearch = !keyword || [
-                item.nama, item.nip_lama, item.translok,
+                item.nama, item.nip, item.uraian,
                 item.kd_translok, item.tim, item.penginput,
             ].some(value => String(value ?? '').toLowerCase().includes(keyword));
 
@@ -49,23 +49,28 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
 
     const statistics = useMemo(() => ({
         total: filtered.length,
-        pegawai: new Set(filtered.map(item => item.nip_lama)).size,
-        volume: filtered.reduce((sum, item) => sum + Number(item.vol), 0),
-        anggaran: filtered.reduce((sum, item) => sum + Number(item.vol) * Number(item.rate), 0),
-    }), [filtered]);
+        pegawai: new Set(filtered.map(item => item.pegawai_id)).size,
+        volume: filtered.reduce((sum, item) => sum + Number(item.volume), 0),
+        anggaran: filtered.reduce((sum, item) => {
+            // Cari rate dari master terkait untuk estimasi anggaran
+            const masterTerkait = masters.find(m => m.id === item.translok_master_id);
+            const rate = masterTerkait ? Number(masterTerkait.rate) : 0;
+            return sum + (Number(item.volume) * rate);
+        }, 0),
+    }), [filtered, masters]);
 
-    const selectedMaster = masters.find(item => item.id === data.id_translok);
+    const selectedMaster = masters.find(item => item.id === Number(data.translok_master_id));
 
     const current = editing ? alokasi.find(item => item.id === editing) : null;
 
     const pegawaiVolume = alokasi
-        .filter(item => item.nip_lama === data.nip_lama && item.id !== editing)
-        .reduce((sum, item) => sum + Number(item.vol), 0);
+        .filter(item => item.pegawai_id === Number(data.pegawai_id) && item.id !== editing)
+        .reduce((sum, item) => sum + Number(item.volume), 0);
 
     const maxPegawai = Math.max(0, 16 - pegawaiVolume);
 
     const maxMaster = selectedMaster
-        ? Number(selectedMaster.sisa) + Number(current?.vol || 0)
+        ? Number(selectedMaster.sisa_volume) + Number(current?.volume || 0)
         : 0;
 
     const openAdd = () => {
@@ -73,11 +78,12 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
         clearErrors();
         setData({
             bulan: String(bulan).padStart(2, '0'),
-            id_translok: '',
-            nip_lama: '',
-            jadwal_a: '',
-            jadwal_b: '',
-            vol: 1,
+            translok_master_id: '',
+            pegawai_id: '',
+            tanggal_mulai: '',
+            tanggal_selesai: '',
+            volume: 1,
+            catatan: '',
         });
         setOpen(true);
     };
@@ -85,13 +91,18 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
     const openEdit = item => {
         setEditing(item.id);
         clearErrors();
+
+        // Ambil bulan dari tanggal mulai
+        const itemBulan = item.tanggal_mulai ? item.tanggal_mulai.substring(5, 7) : String(bulan).padStart(2, '0');
+
         setData({
-            bulan: item.bulan,
-            id_translok: item.id_translok,
-            nip_lama: item.nip_lama,
-            jadwal_a: item.jadwal_a,
-            jadwal_b: item.jadwal_b,
-            vol: item.vol,
+            bulan: itemBulan,
+            translok_master_id: item.translok_master_id,
+            pegawai_id: item.pegawai_id,
+            tanggal_mulai: item.tanggal_mulai,
+            tanggal_selesai: item.tanggal_selesai,
+            volume: item.volume,
+            catatan: item.catatan || '',
         });
         setOpen(true);
     };
@@ -136,7 +147,7 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
     };
 
     const changeMonth = value => {
-        router.get(route('translok.alokasi'), { bulan: value }, {
+        router.get(route('translok.alokasi.index'), { bulan: value }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -233,39 +244,59 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                                             Belum ada alokasi pada bulan ini.
                                         </td>
                                     </tr>
-                                ) : filtered.map(item => (
-                                    <tr key={item.id} className="transition-colors hover:bg-slate-50/80">
-                                        <td className="px-4 py-3">
-                                            <p className="font-semibold text-slate-800">{item.nama}</p>
-                                            <p className="mt-1 text-xs text-slate-400">{item.nip_lama}</p>
-                                        </td>
-                                        <td className="max-w-sm px-4 py-3">
-                                            <p className="font-medium leading-relaxed text-slate-800">{item.translok || '-'}</p>
-                                            <p className="mt-1 text-xs text-slate-400">Kode {item.kd_translok || '-'} · Tim {item.tim || '-'}</p>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className="whitespace-nowrap text-slate-700">{dateLabel(item.jadwal_a)}</span>
-                                            <p className="mt-1 whitespace-nowrap text-xs text-slate-400">s.d. {dateLabel(item.jadwal_b)}</p>
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-800">{number(item.vol)}</td>
-                                        <td className="px-4 py-3 text-right tabular-nums">{money(item.vol * item.rate)}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{item.jumlah_detail} / {item.vol}</span>
-                                        </td>
-                                        {canManage && (
+                                ) : filtered.map(item => {
+                                    const masterTerkait = masters.find(m => m.id === item.translok_master_id);
+                                    const rate = masterTerkait ? Number(masterTerkait.rate) : 0;
+                                    const estimasi = Number(item.volume) * rate;
+
+                                    return (
+                                        <tr key={item.id} className="transition-colors hover:bg-slate-50/80">
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <button type="button" onClick={() => openEdit(item)} title="Edit Alokasi" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
-                                                        <Pencil size={16} />
-                                                    </button>
-                                                    <button type="button" onClick={() => { setDeleteError(''); setDeleting(item); }} title="Hapus Alokasi" className="rounded-lg p-2 text-red-600 hover:bg-red-50">
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
+                                                <p className="font-semibold text-slate-800">{item.nama}</p>
+                                                <p className="mt-1 text-xs text-slate-400">{item.nip}</p>
                                             </td>
-                                        )}
-                                    </tr>
-                                ))}
+                                            <td className="max-w-sm px-4 py-3">
+                                                <p className="font-medium leading-relaxed text-slate-800">{item.uraian || '-'}</p>
+                                                <p className="mt-1 text-xs text-slate-400">Kode {item.kd_translok || '-'} · Tim {item.tim || '-'}</p>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className="whitespace-nowrap text-slate-700">{dateLabel(item.tanggal_mulai)}</span>
+                                                <p className="mt-1 whitespace-nowrap text-xs text-slate-400">s.d. {dateLabel(item.tanggal_selesai)}</p>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-800">{number(item.volume)}</td>
+                                            <td className="px-4 py-3 text-right tabular-nums">{money(estimasi)}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === 'dibatalkan' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
+                                                    {item.status === 'dibatalkan' ? 'Batal' : `${item.jumlah_detail} / ${item.volume}`}
+                                                </span>
+                                            </td>
+                                            {canManage && (
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEdit(item)}
+                                                            title="Edit Alokasi"
+                                                            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                                                            disabled={item.status === 'dibatalkan'}
+                                                        >
+                                                            <Pencil size={16} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setDeleteError(''); setDeleting(item); }}
+                                                            title="Hapus / Batalkan Alokasi"
+                                                            className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                                            disabled={item.status === 'dibatalkan'}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -282,7 +313,7 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                             <div>
                                 <h2 className="text-base font-bold text-slate-900">{editing ? 'Edit Alokasi Translok' : 'Tambah Alokasi Translok'}</h2>
-                                <p className="mt-1 text-xs text-slate-500">{bulanOptions[Number(bulan) - 1]} {tahun}</p>
+                                <p className="mt-1 text-xs text-slate-500">{bulanOptions[Number(data.bulan) - 1]} {tahun}</p>
                             </div>
                             <button type="button" disabled={processing} onClick={close} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
                                 <X size={18} />
@@ -291,52 +322,58 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
 
                         <form onSubmit={submit} className="space-y-4 overflow-y-auto p-5">
                             <div>
-                                <label className={labelClass}>Kegiatan Translok</label>
-                                <select required disabled={Boolean(editing)} value={data.id_translok} onChange={event => setData('id_translok', event.target.value)} className={fieldClass}>
+                                <label className={labelClass}>Kegiatan Translok <span className="text-red-500">*</span></label>
+                                <select required disabled={Boolean(editing)} value={data.translok_master_id} onChange={event => setData('translok_master_id', event.target.value)} className={fieldClass}>
                                     <option value="">Pilih kegiatan Translok</option>
-                                    {masters.filter(item => item.sisa > 0 || item.id === data.id_translok).map(item => (
+                                    {masters.filter(item => item.sisa_volume > 0 || String(item.id) === String(data.translok_master_id)).map(item => (
                                         <option key={item.id} value={item.id}>
-                                            [{item.kode}] {item.nama} — Sisa {number(item.sisa)} {item.satuan}
+                                            [{item.kd_translok}] {item.uraian} — Sisa {number(item.sisa_volume)} {item.satuan}
                                         </option>
                                     ))}
                                 </select>
-                                {errors.id_translok && <p className="mt-1 text-xs text-red-600">{errors.id_translok}</p>}
+                                {errors.translok_master_id && <p className="mt-1 text-xs text-red-600">{errors.translok_master_id}</p>}
                             </div>
 
                             <div>
-                                <label className={labelClass}>Pegawai</label>
-                                <select required disabled={Boolean(editing)} value={data.nip_lama} onChange={event => setData('nip_lama', event.target.value)} className={fieldClass}>
+                                <label className={labelClass}>Pegawai <span className="text-red-500">*</span></label>
+                                <select required disabled={Boolean(editing)} value={data.pegawai_id} onChange={event => setData('pegawai_id', event.target.value)} className={fieldClass}>
                                     <option value="">Pilih pegawai</option>
                                     {pegawai.map(item => (
-                                        <option key={item.nip_lama} value={item.nip_lama}>{item.nama} — {item.nip_lama}</option>
+                                        <option key={item.id} value={item.id}>{item.name} — {item.nip}</option>
                                     ))}
                                 </select>
-                                {errors.nip_lama && <p className="mt-1 text-xs text-red-600">{errors.nip_lama}</p>}
+                                {errors.pegawai_id && <p className="mt-1 text-xs text-red-600">{errors.pegawai_id}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 <div>
-                                    <label className={labelClass}>Tanggal Mulai</label>
-                                    <input type="date" required value={data.jadwal_a} onChange={event => setData('jadwal_a', event.target.value)} className={fieldClass} />
-                                    {errors.jadwal_a && <p className="mt-1 text-xs text-red-600">{errors.jadwal_a}</p>}
+                                    <label className={labelClass}>Tanggal Mulai <span className="text-red-500">*</span></label>
+                                    <input type="date" required value={data.tanggal_mulai} onChange={event => setData('tanggal_mulai', event.target.value)} className={fieldClass} />
+                                    {errors.tanggal_mulai && <p className="mt-1 text-xs text-red-600">{errors.tanggal_mulai}</p>}
                                 </div>
                                 <div>
-                                    <label className={labelClass}>Tanggal Selesai</label>
-                                    <input type="date" required min={data.jadwal_a || undefined} value={data.jadwal_b} onChange={event => setData('jadwal_b', event.target.value)} className={fieldClass} />
-                                    {errors.jadwal_b && <p className="mt-1 text-xs text-red-600">{errors.jadwal_b}</p>}
+                                    <label className={labelClass}>Tanggal Selesai <span className="text-red-500">*</span></label>
+                                    <input type="date" required min={data.tanggal_mulai || undefined} value={data.tanggal_selesai} onChange={event => setData('tanggal_selesai', event.target.value)} className={fieldClass} />
+                                    {errors.tanggal_selesai && <p className="mt-1 text-xs text-red-600">{errors.tanggal_selesai}</p>}
                                 </div>
                                 <div>
-                                    <label className={labelClass}>Volume Alokasi</label>
-                                    <input type="number" required min="1" step="1" value={data.vol} onChange={event => setData('vol', event.target.value)} className={fieldClass} />
-                                    {errors.vol && <p className="mt-1 text-xs text-red-600">{errors.vol}</p>}
+                                    <label className={labelClass}>Volume Alokasi <span className="text-red-500">*</span></label>
+                                    <input type="number" required min="1" step="1" value={data.volume} onChange={event => setData('volume', event.target.value)} className={fieldClass} />
+                                    {errors.volume && <p className="mt-1 text-xs text-red-600">{errors.volume}</p>}
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>Catatan Tambahan (Opsional)</label>
+                                <input type="text" value={data.catatan} onChange={event => setData('catatan', event.target.value)} placeholder="Tujuan / Lokasi perjalanan" className={fieldClass} />
+                                {errors.catatan && <p className="mt-1 text-xs text-red-600">{errors.catatan}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
                                 {[
                                     ['Sisa Volume Master', number(maxMaster)],
-                                    ['Kuota Pegawai', `${number(maxPegawai)} tersisa`],
-                                    ['Estimasi Anggaran', money(Number(data.vol) * Number(selectedMaster?.rate || 0))],
+                                    ['Kuota Pegawai (Bulan Ini)', `${number(maxPegawai)} tersisa`],
+                                    ['Estimasi Anggaran', money(Number(data.volume) * Number(selectedMaster?.rate || 0))],
                                 ].map(([label, value]) => (
                                     <div key={label}>
                                         <p className="text-xs text-slate-500">{label}</p>
@@ -345,16 +382,20 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                                 ))}
                             </div>
 
-                            {(Number(data.vol) > maxMaster || Number(data.vol) > maxPegawai) && selectedMaster && (
+                            {(Number(data.volume) > maxMaster || Number(data.volume) > maxPegawai) && selectedMaster && (
                                 <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
                                     <AlertTriangle size={16} className="shrink-0" />
-                                    Volume melebihi sisa Master atau kuota pegawai.
+                                    Volume melebihi sisa Master Translok atau kuota maksimal pegawai (16 per bulan).
                                 </div>
                             )}
 
                             {Object.keys(errors).length > 0 && (
                                 <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-700">
-                                    {Object.values(errors).join(' ')}
+                                    <ul className="list-disc pl-4">
+                                        {Object.values(errors).map((err, idx) => (
+                                            <li key={idx}>{err}</li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
 
@@ -362,7 +403,7 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                                 <button type="button" disabled={processing} onClick={close} className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                     Batal
                                 </button>
-                                <button type="submit" disabled={processing || !selectedMaster || Number(data.vol) > maxMaster || Number(data.vol) > maxPegawai} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+                                <button type="submit" disabled={processing || !selectedMaster || Number(data.volume) > maxMaster || Number(data.volume) > maxPegawai} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
                                     {processing ? 'Menyimpan...' : 'Simpan Alokasi'}
                                 </button>
                             </div>
@@ -376,23 +417,23 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
                         <div className="mb-3 flex items-center gap-2 text-red-600">
                             <AlertTriangle size={20} />
-                            <h2 className="text-base font-bold text-slate-900">Hapus Alokasi?</h2>
+                            <h2 className="text-base font-bold text-slate-900">Batalkan Alokasi?</h2>
                         </div>
                         <p className="text-sm leading-relaxed text-slate-600">
-                            Alokasi milik <strong>{deleting.nama}</strong> akan dihapus dan volume dikembalikan ke Master Translok.
+                            Alokasi milik <strong>{deleting.nama}</strong> akan dibatalkan dan volumenya dikembalikan ke Master Translok.
                         </p>
                         {deleting.jumlah_detail > 0 && (
                             <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-                                Alokasi ini sudah memiliki {deleting.jumlah_detail} detail perjalanan sehingga tidak dapat dihapus.
+                                Alokasi ini sudah memiliki {deleting.jumlah_detail} detail perjalanan, hapus detail tersebut terlebih dahulu sebelum membatalkan alokasi ini.
                             </p>
                         )}
                         {deleteError && <p className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{deleteError}</p>}
                         <div className="mt-5 flex justify-end gap-2">
                             <button type="button" disabled={deleteProcessing} onClick={() => setDeleting(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold">
-                                Batal
+                                Kembali
                             </button>
                             <button type="button" disabled={deleteProcessing || deleting.jumlah_detail > 0} onClick={remove} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
-                                {deleteProcessing ? 'Menghapus...' : 'Hapus Alokasi'}
+                                {deleteProcessing ? 'Memproses...' : 'Batalkan Alokasi'}
                             </button>
                         </div>
                     </div>

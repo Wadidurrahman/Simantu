@@ -15,465 +15,377 @@ class TranslokDetailController extends Controller
 {
     public function index(Request $request): Response
     {
-        $this->authorizeAccess($request);
+        $this->otorisasiLihat($request);
 
-        $year = $this->year();
-        $month = max(1, min(12, $request->integer('bulan', now()->month)));
-        $manager = $this->isManager($request);
-        $nip = $this->nip($request);
+        $tahun = $this->tahunAktif($request);
+        $bulan = (int) $request->input('bulan', now('Asia/Jakarta')->month);
 
-        if (!$manager) {
-            abort_if($nip === '', 403);
-        }
+        abort_unless($bulan >= 1 && $bulan <= 12, 422);
 
-        $query = DB::table('translok_alokasi as a')
-            ->leftJoin('translok_master as m', 'm.id_translok', '=', 'a.id_translok')
-            ->leftJoin('organik as o', 'o.nip_lama', '=', 'a.nip_lama')
-            ->where('a.tahun', $year)
-            ->where('a.bulan', sprintf('%02d', $month));
+        [$awalBulan, $akhirBulan] = $this->batasBulan($tahun, $bulan);
 
-        if (!$manager) {
-            $query->where('a.nip_lama', $nip);
-        }
-
-        $allocations = $query
-            ->select(
+        $queryAlokasi = DB::table('tb_translok_alokasi as a')
+            ->join('tb_translok_master as m', 'm.id', '=', 'a.translok_master_id')
+            ->join('users as p', 'p.id', '=', 'a.pegawai_id')
+            ->join('tb_tim as t', 't.id', '=', 'm.tim_id')
+            ->where('a.status', '!=', 'dibatalkan')
+            ->where('m.tahun', (string) $tahun)
+            ->whereBetween('a.tanggal_mulai', [$awalBulan, $akhirBulan])
+            ->select([
                 'a.id',
-                'a.tahun',
-                'a.bulan',
-                'a.nip_lama',
-                'a.jadwal_a',
-                'a.jadwal_b',
-                'a.vol',
+                'a.translok_master_id',
+                'a.pegawai_id',
+                'a.tanggal_mulai',
+                'a.tanggal_selesai',
+                'a.volume',
                 'm.kd_translok',
-                'm.translok',
-                'm.tim',
-                'o.nama'
-            )
-            ->orderBy('a.jadwal_a')
+                'm.uraian',
+                'm.tim_id',
+                't.nama_tim',
+                'p.name as nama_pegawai',
+                'p.nip',
+            ]);
+
+        if ($request->user()->role === 'pegawai') {
+            $queryAlokasi->where('a.pegawai_id', $request->user()->id);
+        } else {
+            $this->batasiTim($queryAlokasi, $request, 'm.tim_id');
+        }
+
+        $alokasi = $queryAlokasi
+            ->orderBy('a.tanggal_mulai')
+            ->orderBy('p.name')
             ->get();
 
-        $ids = $allocations->pluck('id');
+        $ids = $alokasi->pluck('id')->toArray();
 
-        $bookings = DB::table('translok_booking_slots')
-            ->whereIn('id_alokasi', $ids)
-            ->get(['id', 'detail_id', 'id_alokasi', 'starts_at']);
+        $details = [];
+        if (!empty($ids)) {
+            $details = DB::table('tb_translok_detail')
+                ->whereIn('translok_alokasi_id', $ids)
+                ->where('status', '!=', 'dibatalkan')
+                ->orderBy('tanggal')
+                ->get(['id', 'translok_alokasi_id', 'tanggal', 'catatan', 'status'])
+                ->groupBy('translok_alokasi_id');
+        }
 
-        $bookingMap = $bookings->keyBy('detail_id');
-
-        $details = DB::table('translok_detail')
-            ->whereIn('id_alokasi', $ids)
-            ->orderBy('tgl')
-            ->get(['id', 'id_alokasi', 'tgl']);
-
-        $grouped = $details->groupBy('id_alokasi');
-
-        $items = $allocations->map(function ($allocation) use ($grouped, $bookingMap) {
-            $rows = $grouped->get($allocation->id, collect());
+        $items = $alokasi->map(function ($item) use ($details) {
+            $rows = $details->get($item->id, collect());
 
             return [
-                'id' => $allocation->id,
-                'nip_lama' => $allocation->nip_lama,
-                'nama' => $allocation->nama ?: $allocation->nip_lama,
-                'translok' => $allocation->translok ?: 'Translok',
-                'kd_translok' => $allocation->kd_translok,
-                'tim' => $allocation->tim,
-                'jadwal_a' => $allocation->jadwal_a,
-                'jadwal_b' => $allocation->jadwal_b,
-                'vol' => (int) $allocation->vol,
-                'realisasi' => $rows->count(),
-                'details' => $rows->map(function ($detail) use ($bookingMap) {
-                    $slot = $bookingMap->get($detail->id);
-
-                    return [
-                        'id' => $detail->id,
-                        'tgl' => $detail->tgl,
-                        'jam' => $slot ? substr($slot->starts_at, 11, 5) : null,
-                        'managed' => (bool) $slot,
-                    ];
-                })->values(),
+                'id' => $item->id,
+                'pegawai_id' => $item->pegawai_id,
+                'nip' => $item->nip,
+                'nama' => $item->nama_pegawai,
+                'uraian' => $item->uraian ?: 'Translok',
+                'kd_translok' => $item->kd_translok,
+                'tim' => $item->nama_tim,
+                'tanggal_mulai' => $item->tanggal_mulai,
+                'tanggal_selesai' => $item->tanggal_selesai,
+                'volume' => (int) $item->volume,
+                'jumlah_detail' => $rows->count(),
+                'details' => $rows->map(fn($detail) => [
+                    'id' => $detail->id,
+                    'tanggal' => $detail->tanggal,
+                    'catatan' => $detail->catatan,
+                    'status' => $detail->status,
+                ])->values(),
             ];
         });
 
         return Inertia::render('Translok/Detail/Index', [
             'alokasi' => $items,
-            'tahun' => (int) $year,
-            'bulan' => sprintf('%02d', $month),
-            'canManage' => $manager,
+            'tahun' => $tahun,
+            'bulan' => sprintf('%02d', $bulan),
+            'canManage' => $this->bolehMengelola($request),
         ]);
     }
 
     public function availability(Request $request): JsonResponse
     {
-        $this->authorizeAccess($request);
+        $this->otorisasiLihat($request);
 
         $data = $request->validate([
-            'id_alokasi' => ['required', 'string', 'max:255'],
+            'translok_alokasi_id' => ['required', 'integer'],
         ]);
 
-        $allocation = $this->allocation($request, $data['id_alokasi']);
+        $tahun = $this->tahunAktif($request);
+        $alokasi = $this->kunciAlokasi($request, $data['translok_alokasi_id'], $tahun, false);
 
-        $windows = DB::table('translok_booking_windows')
-            ->where('active', true)
-            ->where('date_start', '<=', $allocation->jadwal_b)
-            ->where('date_end', '>=', $allocation->jadwal_a)
-            ->orderBy('date_start')
-            ->get();
-
-        $first = max($allocation->jadwal_a, now()->toDateString());
-        $last = $allocation->jadwal_b;
+        $first = max($alokasi->tanggal_mulai, now('Asia/Jakarta')->toDateString());
+        $last = $alokasi->tanggal_selesai;
         $dates = [];
 
         if ($first <= $last) {
-            $legacyOff = DB::table('translok_tgl_off')
-                ->whereBetween('tgl', [$first, $last])
-                ->pluck('tgl')
-                ->flip();
-
-            $legacyDetail = DB::table('translok_detail as d')
-                ->leftJoin('translok_booking_slots as b', 'b.detail_id', '=', 'd.id')
-                ->whereBetween('d.tgl', [$first, $last])
-                ->whereNull('b.id')
-                ->distinct()
-                ->pluck('d.tgl')
-                ->flip();
-
-            $takenSlots = DB::table('translok_booking_slots')
-                ->whereBetween('starts_at', [
-                    $first . ' 00:00:00',
-                    $last . ' 23:59:59',
-                ])
-                ->pluck('starts_at')
+            $takenDates = DB::table('tb_translok_detail')
+                ->where('translok_alokasi_id', $alokasi->id)
+                ->where('status', '!=', 'dibatalkan')
+                ->whereBetween('tanggal', [$first, $last])
+                ->pluck('tanggal')
                 ->flip();
 
             for ($day = Carbon::parse($first); $day->toDateString() <= $last; $day->addDay()) {
                 $date = $day->toDateString();
-                $slots = [];
 
-                foreach ($windows as $window) {
-                    if (
-                        $date < $window->date_start ||
-                        $date > $window->date_end ||
-                        now()->greaterThanOrEqualTo(Carbon::parse($window->deadline))
-                    ) {
-                        continue;
-                    }
-
-                    $startHour = (int) substr($window->time_start, 0, 2);
-                    $endHour = (int) substr($window->time_end, 0, 2);
-
-                    for ($hour = $startHour; $hour < $endHour; $hour++) {
-                        $startsAt = sprintf('%s %02d:00:00', $date, $hour);
-
-                        if (Carbon::parse($startsAt)->lte(now())) {
-                            continue;
-                        }
-
-                        $slots[] = [
-                            'time' => sprintf('%02d:00', $hour),
-                            'taken' => $takenSlots->has($startsAt)
-                                || $legacyOff->has($date)
-                                || $legacyDetail->has($date),
-                        ];
-                    }
+                // Hari Sabtu dan Minggu tidak bisa dipilih
+                if ($day->isWeekend()) {
+                    continue;
                 }
 
-                if (count($slots)) {
-                    $dates[] = [
-                        'date' => $date,
-                        'slots' => $slots,
-                    ];
-                }
+                $dates[] = [
+                    'date' => $date,
+                    'taken' => $takenDates->has($date),
+                ];
             }
         }
 
         return response()->json([
             'dates' => $dates,
-            'server_time' => now()->format('Y-m-d H:i:s'),
+            'server_time' => now('Asia/Jakarta')->format('Y-m-d H:i:s'),
         ]);
     }
 
-    public function store(Request $request): \Illuminate\Http\RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $this->authorizeAccess($request);
+        $this->otorisasiKelola($request);
 
         $data = $request->validate([
-            'id_alokasi' => ['required', 'string', 'max:255'],
-            'tgl' => ['required', 'date_format:Y-m-d'],
-            'jam' => ['required', 'date_format:H:i'],
+            'translok_alokasi_id' => ['required', 'integer'],
+            'tanggal' => ['required', 'date_format:Y-m-d'],
+            'catatan' => ['nullable', 'string'],
         ]);
 
-        if (!str_ends_with($data['jam'], ':00')) {
-            throw ValidationException::withMessages([
-                'jam' => 'Slot harus menggunakan jam bulat.',
-            ]);
-        }
+        $tahun = $this->tahunAktif($request);
 
-        $allocation = $this->allocation($request, $data['id_alokasi']);
-        $dateTime = $data['tgl'] . ' ' . $data['jam'] . ':00';
-        $isManager = $this->isManager($request);
+        DB::transaction(function () use ($request, $data, $tahun) {
+            $alokasi = $this->kunciAlokasi($request, $data['translok_alokasi_id'], $tahun, true);
 
-        DB::transaction(function () use ($allocation, $data, $dateTime, $isManager) {
-            $this->lockMutex();
-            $this->lockPegawai($allocation->nip_lama);
-
-            $a = DB::table('translok_alokasi')
-                ->where('id', $allocation->id)
-                ->lockForUpdate()
-                ->first();
-
-            abort_if(!$a, 404);
-
-            if (
-                $data['tgl'] < $a->jadwal_a ||
-                $data['tgl'] > $a->jadwal_b ||
-                substr($data['tgl'], 0, 4) !== (string) $a->tahun ||
-                substr($data['tgl'], 5, 2) !== (string) $a->bulan
-            ) {
+            if ($alokasi->status !== 'draft') {
                 throw ValidationException::withMessages([
-                    'tgl' => 'Tanggal berada di luar periode alokasi.',
+                    'tanggal' => 'Alokasi ini tidak dapat ditambah detail karena statusnya bukan draft.',
                 ]);
             }
 
-            if (!$isManager && Carbon::parse($dateTime)->lte(now())) {
+            if ($data['tanggal'] < $alokasi->tanggal_mulai || $data['tanggal'] > $alokasi->tanggal_selesai) {
                 throw ValidationException::withMessages([
-                    'tgl' => 'Tidak bisa memesan slot di waktu yang telah lewat.',
+                    'tanggal' => 'Tanggal berada di luar periode alokasi.',
                 ]);
             }
 
-            $windowId = null;
-
-            if (!$isManager) {
-                $window = DB::table('translok_booking_windows')
-                    ->where('active', true)
-                    ->where('date_start', '<=', $data['tgl'])
-                    ->where('date_end', '>=', $data['tgl'])
-                    ->where('time_start', '<=', $data['jam'] . ':00')
-                    ->where('time_end', '>', $data['jam'] . ':00')
-                    ->where('deadline', '>', now())
-                    ->orderBy('id')
-                    ->first();
-
-                if (!$window) {
-                    throw ValidationException::withMessages([
-                        'jam' => 'Slot tidak tersedia atau deadline booking sudah berakhir.',
-                    ]);
-                }
-                $windowId = $window->id;
-            }
-
-            if (
-                DB::table('translok_tgl_off')
-                    ->where('tgl', $data['tgl'])
-                    ->exists()
-            ) {
+            $day = Carbon::parse($data['tanggal']);
+            if ($day->isWeekend()) {
                 throw ValidationException::withMessages([
-                    'tgl' => 'Tanggal masuk daftar Tanggal Off.',
+                    'tanggal' => 'Detail perjalanan tidak dapat dilakukan pada hari libur akhir pekan.',
                 ]);
             }
 
-            $legacyDetail = DB::table('translok_detail as d')
-                ->leftJoin('translok_booking_slots as s', 's.detail_id', '=', 'd.id')
-                ->where('d.tgl', $data['tgl'])
-                ->whereNull('s.id')
+            if ($day->isPast() && !$this->bolehKelolaHistoris($request)) {
+                 throw ValidationException::withMessages([
+                    'tanggal' => 'Pegawai tidak bisa merekam detail di tanggal yang sudah terlewat. Hubungi Ketua Tim atau Operator.',
+                ]);
+            }
+
+            $detailHitung = DB::table('tb_translok_detail')
+                ->where('translok_alokasi_id', $alokasi->id)
+                ->where('status', '!=', 'dibatalkan')
+                ->count();
+
+            if ($detailHitung >= (int) $alokasi->volume) {
+                throw ValidationException::withMessages([
+                    'tanggal' => 'Kuota volume alokasi sudah habis.',
+                ]);
+            }
+
+            $sudahAda = DB::table('tb_translok_detail')
+                ->where('translok_alokasi_id', $alokasi->id)
+                ->where('tanggal', $data['tanggal'])
+                ->where('status', '!=', 'dibatalkan')
                 ->exists();
 
-            if ($legacyDetail) {
+            if ($sudahAda) {
                 throw ValidationException::withMessages([
-                    'tgl' => 'Tanggal memiliki perjalanan historis tanpa jam, sehingga belum dapat dipesan.',
+                    'tanggal' => 'Detail perjalanan pada tanggal ini sudah ada.',
                 ]);
             }
 
-            if (
-                DB::table('translok_booking_slots')
-                    ->where('starts_at', $dateTime)
-                    ->exists()
-            ) {
-                throw ValidationException::withMessages([
-                    'jam' => 'Slot sudah dipesan pegawai lain. Pilih jam lain.',
+            // Periksa jika pegawai punya perjalanan di master alokasi lain di hari yang sama
+            $bentrok = DB::table('tb_translok_detail as d')
+                ->join('tb_translok_alokasi as a', 'a.id', '=', 'd.translok_alokasi_id')
+                ->where('a.pegawai_id', $alokasi->pegawai_id)
+                ->where('d.tanggal', $data['tanggal'])
+                ->where('d.status', '!=', 'dibatalkan')
+                ->exists();
+
+            if ($bentrok) {
+                 throw ValidationException::withMessages([
+                    'tanggal' => 'Pegawai sudah memiliki detail perjalanan di alokasi lain pada tanggal ini.',
                 ]);
             }
 
-            if (
-                DB::table('translok_detail')
-                    ->where('nip_l', $a->nip_lama)
-                    ->where('tgl', $data['tgl'])
-                    ->exists()
-            ) {
-                throw ValidationException::withMessages([
-                    'tgl' => 'Pegawai sudah memiliki perjalanan di tanggal ini.',
-                ]);
-            }
-
-            if (
-                DB::table('translok_detail')
-                    ->where('id_alokasi', $a->id)
-                    ->count() >= (int) $a->vol
-            ) {
-                throw ValidationException::withMessages([
-                    'tgl' => 'Kuota volume alokasi sudah habis.',
-                ]);
-            }
-
-            $detailId = $a->id . $data['tgl'];
-
-            if (DB::table('translok_detail')->where('id', $detailId)->exists()) {
-                throw ValidationException::withMessages([
-                    'tgl' => 'Detail perjalanan sudah ada.',
-                ]);
-            }
-
-            DB::table('translok_detail')->insert([
-                'id' => $detailId,
-                'id_alokasi' => $a->id,
-                'th' => $a->tahun,
-                'bl' => $a->bulan,
-                'id_translok' => $a->id_translok,
-                'nip_l' => $a->nip_lama,
-                'tgl' => $data['tgl'],
-            ]);
-
-            DB::table('translok_booking_slots')->insert([
-                'window_id' => $windowId,
-                'id_alokasi' => $a->id,
-                'detail_id' => $detailId,
-                'nip_lama' => $a->nip_lama,
-                'starts_at' => $dateTime,
+            DB::table('tb_translok_detail')->insert([
+                'translok_alokasi_id' => $alokasi->id,
+                'tanggal' => $data['tanggal'],
+                'status' => 'draft',
+                'catatan' => $data['catatan'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         }, 3);
 
-        return back()->with('success', 'Slot perjalanan berhasil dipesan.');
+        return back()->with('success', 'Detail perjalanan berhasil ditambahkan.');
     }
 
-    public function destroy(Request $request, string $id): RedirectResponse
+    public function destroy(Request $request, int $id): RedirectResponse
     {
-        $this->authorizeAccess($request);
+        $this->otorisasiKelola($request);
+        $tahun = $this->tahunAktif($request);
 
-        $current = DB::table('translok_detail')
-            ->where('id', $id)
-            ->where('th', $this->year())
-            ->first();
-
-        abort_if(!$current, 404);
-
-        $this->authorizeAllocation($request, $current->nip_l);
-
-        DB::transaction(function () use ($id, $current) {
-            $this->lockMutex();
-            $this->lockPegawai($current->nip_l);
-
-            $a = DB::table('translok_alokasi')
-                ->where('id', $current->id_alokasi)
+        DB::transaction(function () use ($request, $id, $tahun) {
+            $detail = DB::table('tb_translok_detail')
+                ->where('id', $id)
                 ->lockForUpdate()
                 ->first();
 
-            abort_if(!$a, 404);
+            abort_unless($detail, 404);
 
-            $booking = DB::table('translok_booking_slots')
-                ->where('detail_id', $id)
-                ->first();
-
-            if (!$booking) {
+            if ($detail->status !== 'draft') {
                 throw ValidationException::withMessages([
-                    'booking' => 'Detail perjalanan historis tidak dapat dibatalkan melalui booking baru.',
+                    'detail' => 'Hanya detail dengan status draft yang dapat dibatalkan.',
                 ]);
             }
 
-            DB::table('translok_booking_slots')
-                ->where('detail_id', $id)
-                ->delete();
+            $alokasi = $this->kunciAlokasi($request, $detail->translok_alokasi_id, $tahun, true);
 
-            DB::table('translok_detail')
+            $day = Carbon::parse($detail->tanggal);
+            if ($day->isPast() && !$this->bolehKelolaHistoris($request)) {
+                 throw ValidationException::withMessages([
+                    'detail' => 'Detail yang sudah terlewat hanya bisa dibatalkan oleh Ketua Tim atau Operator.',
+                ]);
+            }
+
+            DB::table('tb_translok_detail')
                 ->where('id', $id)
-                ->where('id_alokasi', $a->id)
-                ->delete();
+                ->update([
+                    'status' => 'dibatalkan',
+                    'updated_at' => now()
+                ]);
         }, 3);
 
-        return back()->with('success', 'Booking dibatalkan. Slot tersedia kembali.');
+        return back()->with('success', 'Detail perjalanan dibatalkan. Volume tersedia kembali.');
     }
 
-    private function allocation(Request $request, string $id): object
+    private function kunciAlokasi(Request $request, int $id, int $tahun, bool $lock): object
     {
-        $allocation = DB::table('translok_alokasi')
-            ->where('id', $id)
-            ->where('tahun', $this->year())
-            ->first();
+        $query = DB::table('tb_translok_alokasi as a')
+            ->join('tb_translok_master as m', 'm.id', '=', 'a.translok_master_id')
+            ->where('a.id', $id)
+            ->where('a.status', '!=', 'dibatalkan')
+            ->where('m.tahun', (string) $tahun)
+            ->select('a.*', 'm.tim_id');
 
-        abort_if(!$allocation, 404);
-
-        $this->authorizeAllocation($request, $allocation->nip_lama);
-
-        return $allocation;
-    }
-
-    private function lockMutex(): void
-    {
-        DB::table('translok_booking_mutex')
-            ->where('id', 1)
-            ->lockForUpdate()
-            ->first();
-    }
-
-    private function lockPegawai(string $nip): void
-    {
-        abort_if(
-            !DB::table('organik')
-                ->where('nip_lama', $nip)
-                ->lockForUpdate()
-                ->first(),
-            404
-        );
-    }
-
-    private function authorizeAllocation(Request $request, string $nip): void
-    {
-        if (!$this->isManager($request)) {
-            abort_unless(
-                $this->nip($request) !== '' &&
-                $this->nip($request) === $nip,
-                403
-            );
+        if ($lock) {
+            $query->lockForUpdate();
         }
+
+        $alokasi = $query->first();
+        abort_unless($alokasi, 404);
+
+        if ($request->user()->role === 'pegawai') {
+            abort_unless($alokasi->pegawai_id === $request->user()->id, 403);
+        } else {
+            $this->pastikanAksesTim($request, $alokasi->tim_id, $tahun);
+        }
+
+        return $alokasi;
     }
 
-    private function nip(Request $request): string
+    private function batasiTim($query, Request $request, string $kolom): void
     {
-        return (string) (
-            $request->user()->nip_lama
-            ?? $request->user()->nip
-            ?? ''
-        );
+        $pengguna = $request->user();
+        $tahun = $this->tahunAktif($request);
+
+        if (in_array($pengguna->role, ['super_admin', 'pimpinan', 'operator'], true)) {
+            return;
+        }
+
+        if ($pengguna->role === 'ketua_tim') {
+            $query->whereIn(
+                $kolom,
+                DB::table('tb_tim')
+                    ->where('tahun', (string) $tahun)
+                    ->where('ketua_id', $pengguna->id)
+                    ->select('id')
+            );
+            return;
+        }
+
+        // Ini tidak akan dipanggil untuk 'pegawai' karena sudah di handle di method index
+        $query->where($kolom, 0);
     }
 
-    private function isManager(Request $request): bool
+    private function pastikanAksesTim(Request $request, int $timId, int $tahun): void
     {
-        return in_array(
-            $request->user()->role,
-            ['admin', 'ketua'],
-            true
-        );
-    }
+        if ($request->user()->role !== 'ketua_tim') {
+            return;
+        }
 
-    private function authorizeAccess(Request $request): void
-    {
         abort_unless(
-            in_array(
-                $request->user()->role,
-                ['admin', 'ketua', 'pegawai'],
-                true
-            ),
+            DB::table('tb_tim')
+                ->where('id', $timId)
+                ->where('tahun', (string) $tahun)
+                ->where('ketua_id', $request->user()->id)
+                ->exists(),
             403
         );
     }
 
-    private function year(): string
+    private function batasBulan(int $tahun, int $bulan): array
     {
-        $year = (int) session('tahun', now()->year);
+        $awal = Carbon::create($tahun, $bulan, 1, 0, 0, 0, 'Asia/Jakarta');
+        return [
+            $awal->toDateString(),
+            $awal->copy()->endOfMonth()->toDateString(),
+        ];
+    }
 
-        abort_unless($year >= 2000 && $year <= 2100, 422);
+    private function tahunAktif(Request $request): int
+    {
+        $tahun = (int) $request->session()->get('tahun_aktif', 0);
+        abort_unless($tahun >= 2020 && $tahun <= now('Asia/Jakarta')->year + 1, 403);
+        return $tahun;
+    }
 
-        return (string) $year;
+    private function otorisasiLihat(Request $request): void
+    {
+        abort_unless(
+            $request->user()->status === 'aktif' &&
+            $request->user()->role !== 'mitra',
+            403
+        );
+    }
+
+    private function otorisasiKelola(Request $request): void
+    {
+        abort_unless($this->bolehMengelola($request), 403);
+    }
+
+    private function bolehMengelola(Request $request): bool
+    {
+        return $request->user()->status === 'aktif' &&
+            in_array($request->user()->role, [
+                'super_admin',
+                'operator',
+                'ketua_tim',
+                'pegawai'
+            ], true);
+    }
+
+    private function bolehKelolaHistoris(Request $request): bool
+    {
+         return in_array($request->user()->role, [
+            'super_admin',
+            'operator',
+            'ketua_tim'
+        ], true);
     }
 }

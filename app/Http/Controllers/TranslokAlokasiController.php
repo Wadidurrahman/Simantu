@@ -19,7 +19,7 @@ class TranslokAlokasiController extends Controller
         $this->otorisasiLihat($request);
 
         $tahun = $this->tahunAktif($request);
-        $bulan = $request->integer('bulan', now('Asia/Jakarta')->month);
+        $bulan = (int) $request->input('bulan', now('Asia/Jakarta')->month);
 
         abort_unless($bulan >= 1 && $bulan <= 12, 422);
 
@@ -68,26 +68,16 @@ class TranslokAlokasiController extends Controller
             ->get()
             ->map(fn ($item) => [
                 'id' => $item->id,
-                'tahun' => $item->tahun,
-                'bulan' => substr($item->tanggal_mulai, 5, 2),
                 'translok_master_id' => $item->translok_master_id,
-                'id_translok' => $item->translok_master_id,
-                'kegiatan_id' => $item->kegiatan_id,
                 'pegawai_id' => $item->pegawai_id,
-                'nip_lama' => $item->nip,
+                'nip' => $item->nip,
                 'nama' => $item->nama_pegawai,
-                'translok' => $item->uraian,
+                'uraian' => $item->uraian,
                 'kd_translok' => $item->kd_translok,
                 'tim' => $item->nama_tim,
-                'tim_id' => $item->tim_id,
-                'satuan' => $item->satuan,
-                'rate' => $item->rate,
                 'tanggal_mulai' => $item->tanggal_mulai,
                 'tanggal_selesai' => $item->tanggal_selesai,
-                'jadwal_a' => $item->tanggal_mulai,
-                'jadwal_b' => $item->tanggal_selesai,
                 'volume' => (int) $item->volume,
-                'vol' => (int) $item->volume,
                 'status' => $item->status,
                 'catatan' => $item->catatan,
                 'jumlah_detail' => (int) ($item->jumlah_detail ?? 0),
@@ -125,19 +115,17 @@ class TranslokAlokasiController extends Controller
             ->get()
             ->map(function ($item) {
                 $teralokasi = (int) ($item->teralokasi ?? 0);
-
                 return [
                     'id' => $item->id,
-                    'kode' => $item->kd_translok,
-                    'nama' => $item->uraian,
+                    'kd_translok' => $item->kd_translok,
+                    'uraian' => $item->uraian,
                     'tim' => $item->nama_tim,
                     'tim_id' => $item->tim_id,
-                    'kegiatan_id' => $item->kegiatan_id,
                     'satuan' => $item->satuan,
-                    'volume' => (int) $item->vol_a,
-                    'teralokasi' => $teralokasi,
-                    'sisa' => (int) $item->vol_a - $teralokasi,
-                    'rate' => $item->rate,
+                    'vol_a' => (int) $item->vol_a,
+                    'volume_teralokasi' => $teralokasi,
+                    'sisa_volume' => (int) $item->vol_a - $teralokasi,
+                    'rate' => (float) $item->rate,
                     'status' => $item->status,
                 ];
             })
@@ -170,9 +158,7 @@ class TranslokAlokasiController extends Controller
             ->get(['id', 'nip', 'name', 'role'])
             ->map(fn ($item) => [
                 'id' => $item->id,
-                'pegawai_id' => $item->id,
-                'nip_lama' => $item->nip,
-                'nama' => $item->name,
+                'nip' => $item->nip,
                 'name' => $item->name,
                 'role' => $item->role,
             ])
@@ -211,7 +197,7 @@ class TranslokAlokasiController extends Controller
 
             if ($master->status === 'ditutup') {
                 throw ValidationException::withMessages([
-                    'id_translok' => 'Master translok sudah ditutup.',
+                    'translok_master_id' => 'Master translok sudah ditutup.',
                 ]);
             }
 
@@ -234,7 +220,7 @@ class TranslokAlokasiController extends Controller
 
             if ($sudahAda) {
                 throw ValidationException::withMessages([
-                    'id_translok' => 'Pegawai sudah memiliki alokasi master ini pada bulan yang sama.',
+                    'translok_master_id' => 'Pegawai sudah memiliki alokasi master ini pada bulan yang sama.',
                 ]);
             }
 
@@ -338,7 +324,7 @@ class TranslokAlokasiController extends Controller
 
             if ($data['bulan'] !== $bulanLama) {
                 throw ValidationException::withMessages([
-                    'jadwal_a' => 'Bulan alokasi tidak dapat diubah.',
+                    'tanggal_mulai' => 'Bulan alokasi tidak dapat diubah.',
                 ]);
             }
 
@@ -350,7 +336,7 @@ class TranslokAlokasiController extends Controller
 
             if ($data['volume'] < $jumlahDetail) {
                 throw ValidationException::withMessages([
-                    'vol' => 'Volume tidak boleh lebih kecil dari jumlah detail perjalanan.',
+                    'volume' => 'Volume tidak boleh lebih kecil dari jumlah detail perjalanan yang ada.',
                 ]);
             }
 
@@ -364,7 +350,7 @@ class TranslokAlokasiController extends Controller
 
             if ($diLuarPeriode) {
                 throw ValidationException::withMessages([
-                    'jadwal_a' => 'Periode tidak boleh mengeluarkan tanggal perjalanan yang sudah tercatat.',
+                    'tanggal_mulai' => 'Periode tidak boleh mengeluarkan tanggal perjalanan yang sudah tercatat.',
                 ]);
             }
 
@@ -486,40 +472,14 @@ class TranslokAlokasiController extends Controller
         ?object $alokasi = null
     ): array {
         $input = [
-            'translok_master_id' => $request->input(
-                'translok_master_id',
-                $request->input('id_translok')
-            ),
+            'translok_master_id' => $request->input('translok_master_id'),
             'pegawai_id' => $request->input('pegawai_id'),
-            'nip_lama' => $request->input('nip_lama'),
-            'tanggal_mulai' => $request->input(
-                'tanggal_mulai',
-                $request->input('jadwal_a')
-            ),
-            'tanggal_selesai' => $request->input(
-                'tanggal_selesai',
-                $request->input('jadwal_b')
-            ),
-            'volume' => $request->input(
-                'volume',
-                $request->input('vol')
-            ),
+            'tanggal_mulai' => $request->input('tanggal_mulai'),
+            'tanggal_selesai' => $request->input('tanggal_selesai'),
+            'volume' => $request->input('volume'),
             'bulan' => $request->input('bulan'),
-            'catatan' => $request->input(
-                'catatan',
-                $alokasi?->catatan
-            ),
+            'catatan' => $request->input('catatan', $alokasi?->catatan),
         ];
-
-        if (
-            $alokasi === null &&
-            !$input['pegawai_id'] &&
-            $input['nip_lama']
-        ) {
-            $input['pegawai_id'] = DB::table('users')
-                ->where('nip', $input['nip_lama'])
-                ->value('id');
-        }
 
         $aturan = [
             'tanggal_mulai' => [
@@ -576,7 +536,7 @@ class TranslokAlokasiController extends Controller
             (isset($data['bulan']) && (int) $data['bulan'] !== $bulan)
         ) {
             throw ValidationException::withMessages([
-                'jadwal_a' => 'Periode harus berada dalam bulan dan tahun anggaran yang dipilih.',
+                'tanggal_mulai' => 'Periode harus berada dalam bulan dan tahun anggaran yang dipilih.',
             ]);
         }
 
@@ -621,21 +581,15 @@ class TranslokAlokasiController extends Controller
             $queryMaster->where('id', '!=', $kecualiId);
         }
 
-        if (
-            (int) $queryPegawai->sum('volume') +
-            $data['volume'] > 16
-        ) {
+        if ((int) $queryPegawai->sum('volume') + $data['volume'] > 16) {
             throw ValidationException::withMessages([
-                'vol' => 'Total volume pegawai maksimal 16 dalam satu bulan.',
+                'volume' => 'Total volume pegawai maksimal 16 dalam satu bulan.',
             ]);
         }
 
-        if (
-            (int) $queryMaster->sum('volume') +
-            $data['volume'] > (int) $master->vol_a
-        ) {
+        if ((int) $queryMaster->sum('volume') + $data['volume'] > (int) $master->vol_a) {
             throw ValidationException::withMessages([
-                'vol' => 'Sisa volume master translok tidak mencukupi.',
+                'volume' => 'Sisa volume master translok tidak mencukupi.',
             ]);
         }
     }
@@ -692,7 +646,7 @@ class TranslokAlokasiController extends Controller
 
         if (!$valid) {
             throw ValidationException::withMessages([
-                'id_translok' => 'Master translok harus memiliki kegiatan aktif pada tim dan tahun yang sama.',
+                'translok_master_id' => 'Master translok harus memiliki kegiatan aktif pada tim dan tahun yang sama.',
             ]);
         }
     }
