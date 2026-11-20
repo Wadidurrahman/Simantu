@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 import {
     CalendarPlus,
     Clock3,
@@ -59,7 +59,7 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
     }, [items, search]);
 
     const dateLookup = useMemo(
-        () => new Map(availability.map(item => [item.date, item.taken])),
+        () => new Map(availability.map(item => [item.date, item])),
         [availability]
     );
 
@@ -81,31 +81,14 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
         setLoadError('');
 
         try {
-            const url = new URL(
-                route('translok.detail.availability'),
-                window.location.origin
-            );
-
-            url.searchParams.set('translok_alokasi_id', id);
-
-            const response = await fetch(url.toString(), {
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
+            const response = await window.axios.post(route('translok.detail.availability'), {
+                translok_alokasi_id: id,
             });
 
-            if (!response.ok) {
-                throw new Error('Gagal memuat ketersediaan tanggal.');
-            }
-
-            const result = await response.json();
-
-            setAvailability(result.dates || []);
+            setAvailability(response.data?.dates || []);
         } catch (error) {
             setAvailability([]);
-            setLoadError(error.message);
+            setLoadError(error.response?.data?.message || 'Gagal memuat ketersediaan tanggal.');
         } finally {
             setLoading(false);
         }
@@ -338,9 +321,12 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                     }
 
                                     const date = `${tahun}-${bulan}-${String(day).padStart(2, '0')}`;
-                                    const isTaken = dateLookup.get(date) || false;
-                                    const isWeekend = index % 7 >= 5; // Sabtu & Minggu
-                                    const enabled = !isWeekend && !isTaken && remaining > 0;
+                                    const info = dateLookup.get(date);
+                                    const isWeekend = index % 7 >= 5;
+                                    const isOutOfRange = date < selected.tanggal_mulai || date > selected.tanggal_selesai;
+                                    const isOff = info?.off || false;
+                                    const isTaken = info?.taken || false;
+                                    const enabled = Boolean(info) && !isWeekend && !isOutOfRange && !isOff && !isTaken && remaining > 0;
 
                                     return (
                                         <button
@@ -348,9 +334,20 @@ export default function Index({ alokasi = [], tahun, bulan, canManage = false })
                                             key={date}
                                             disabled={!enabled || loading}
                                             onClick={() => chooseDate(date)}
+                                            title={
+                                                isOff
+                                                    ? `Tanggal OFF: ${info.off_reason}`
+                                                    : isTaken
+                                                    ? 'Tanggal sudah dipakai perjalanan dinas'
+                                                    : isOutOfRange
+                                                    ? 'Di luar periode alokasi'
+                                                    : date
+                                            }
                                             className={`aspect-square rounded-xl border text-sm font-semibold transition ${
                                                 selectedDate === date
                                                     ? 'border-slate-900 bg-slate-900 text-white'
+                                                    : isOff
+                                                    ? 'border-rose-200 bg-rose-50 text-rose-400 line-through'
                                                     : enabled
                                                     ? 'border-slate-200 text-slate-800 hover:bg-slate-100'
                                                     : 'border-slate-100 bg-slate-50 text-slate-300'

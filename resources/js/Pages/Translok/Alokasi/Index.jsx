@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Plus, Search, Pencil, Trash2, X, CalendarDays, Users, Wallet, ClipboardList, AlertTriangle, RotateCcw } from 'lucide-react';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
+import { Plus, Search, Pencil, Trash2, X, CalendarDays, CalendarOff, Users, Wallet, ClipboardList, AlertTriangle, RotateCcw } from 'lucide-react';
 
 const bulanOptions = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -12,10 +12,20 @@ const number = value => new Intl.NumberFormat('id-ID').format(Number(value) || 0
 const money = value => `Rp ${number(value)}`;
 const dateLabel = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
-export default function Index({ alokasi = [], masters = [], pegawai = [], tahun, bulan, canManage = false }) {
+export default function Index({
+    alokasi = [],
+    masters = [],
+    pegawai = [],
+    tanggalOff = [],
+    tahun,
+    bulan,
+    canManage = false,
+    canManageTglOff = false,
+}) {
     const [search, setSearch] = useState('');
     const [filterTim, setFilterTim] = useState('');
     const [open, setOpen] = useState(false);
+    const [openTglOff, setOpenTglOff] = useState(false);
     const [editing, setEditing] = useState(null);
     const [deleting, setDeleting] = useState(null);
     const [deleteProcessing, setDeleteProcessing] = useState(false);
@@ -29,6 +39,10 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
         tanggal_selesai: '',
         volume: 1,
         catatan: '',
+    });
+    const tglOffForm = useForm({
+        tanggal: '',
+        keterangan: '',
     });
 
     const teams = useMemo(() => [...new Set(masters.map(item => item.tim).filter(Boolean))].sort(), [masters]);
@@ -168,12 +182,31 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                         <p className="mt-1 text-sm text-slate-500">Pengelolaan alokasi volume perjalanan dinas pegawai tahun {tahun}</p>
                     </div>
 
-                    {canManage && (
-                        <button type="button" onClick={openAdd} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-                            <Plus size={16} />
-                            Tambah Alokasi
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                tglOffForm.clearErrors();
+                                setOpenTglOff(true);
+                            }}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            <CalendarOff size={16} className="text-rose-600" />
+                            <span>Tanggal OFF</span>
+                            {tanggalOff.length > 0 && (
+                                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                                    {tanggalOff.length}
+                                </span>
+                            )}
                         </button>
-                    )}
+
+                        {canManage && (
+                            <button type="button" onClick={openAdd} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+                                <Plus size={16} />
+                                Tambah Alokasi
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -408,6 +441,111 @@ export default function Index({ alokasi = [], masters = [], pegawai = [], tahun,
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {openTglOff && (
+                <div className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+                    <div className="flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                            <div>
+                                <h2 className="text-base font-bold text-slate-900">Daftar Tanggal OFF — {bulanOptions[Number(bulan) - 1]} {tahun}</h2>
+                                <p className="mt-0.5 text-xs text-slate-500">Tanggal yang secara umum tidak dapat digunakan melakukan Perjadin Dalam Kota oleh seluruh pegawai.</p>
+                            </div>
+                            <button type="button" onClick={() => setOpenTglOff(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 overflow-y-auto p-5">
+                            {canManageTglOff && (
+                                <form
+                                    onSubmit={e => {
+                                        e.preventDefault();
+                                        tglOffForm.post(route('translok.tgl-off.store'), {
+                                            preserveScroll: true,
+                                            onSuccess: () => tglOffForm.reset(),
+                                        });
+                                    }}
+                                    className="grid grid-cols-1 gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:grid-cols-12"
+                                >
+                                    <div className="sm:col-span-4">
+                                        <input
+                                            type="date"
+                                            required
+                                            min={`${tahun}-${bulan}-01`}
+                                            max={`${tahun}-${bulan}-31`}
+                                            value={tglOffForm.data.tanggal}
+                                            onChange={e => tglOffForm.setData('tanggal', e.target.value)}
+                                            className={fieldClass}
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-5">
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Keterangan tanggal OFF"
+                                            value={tglOffForm.data.keterangan}
+                                            onChange={e => tglOffForm.setData('keterangan', e.target.value)}
+                                            className={fieldClass}
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-3">
+                                        <button
+                                            type="submit"
+                                            disabled={tglOffForm.processing}
+                                            className="h-full w-full rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                                        >
+                                            + Simpan
+                                        </button>
+                                    </div>
+                                    {tglOffForm.errors.tanggal && (
+                                        <p className="text-xs text-red-600 sm:col-span-12">{tglOffForm.errors.tanggal}</p>
+                                    )}
+                                </form>
+                            )}
+
+                            <div className="overflow-hidden rounded-xl border border-slate-200">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="bg-slate-50 font-semibold uppercase text-slate-500">
+                                        <tr>
+                                            <th className="px-3.5 py-2.5">No</th>
+                                            <th className="px-3.5 py-2.5">Tanggal</th>
+                                            <th className="px-3.5 py-2.5">Keterangan</th>
+                                            {canManageTglOff && <th className="px-3.5 py-2.5 text-right">Aksi</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {tanggalOff.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={canManageTglOff ? 4 : 3} className="px-3.5 py-8 text-center text-slate-400">
+                                                    Tidak ada Tanggal OFF pada bulan ini.
+                                                </td>
+                                            </tr>
+                                        ) : tanggalOff.map((row, idx) => (
+                                            <tr key={row.tanggal}>
+                                                <td className="px-3.5 py-2.5 text-slate-400">{idx + 1}</td>
+                                                <td className="px-3.5 py-2.5 font-medium text-slate-800">{dateLabel(row.tanggal)}</td>
+                                                <td className="px-3.5 py-2.5 text-slate-600">{row.keterangan}</td>
+                                                {canManageTglOff && (
+                                                    <td className="px-3.5 py-2.5 text-right">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => router.delete(route('translok.tgl-off.destroy', row.tanggal), { preserveScroll: true })}
+                                                            className="rounded p-1 text-red-600 hover:bg-red-50"
+                                                            title="Hapus"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 import Modal from '@/Components/Kegiatan/Modal';
 import FormField, { inputClass } from '@/Components/Kegiatan/FormField';
 

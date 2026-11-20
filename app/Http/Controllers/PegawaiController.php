@@ -102,6 +102,7 @@ class PegawaiController extends Controller
             $pegawai->email = strtolower(trim((string) ($data['email'] ?? '')));
             $pegawai->verifikasi_email = '';
             $pegawai->password = $data['password'];
+            $pegawai->must_change_password = true;
             $pegawai->id_jabatan = $this->cariJabatan($data['jabatan']);
             $pegawai->no_hp = $data['nomor_hp'] ?? null;
             $pegawai->role = 'pegawai';

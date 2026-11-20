@@ -1,7 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { ClipboardList, Plus, Copy, Printer, X } from 'lucide-react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 
 export default function Realisasi({ petugasList = [] }) {
     const { flash, errors: pageErrors } = usePage().props;
@@ -68,7 +68,7 @@ export default function Realisasi({ petugasList = [] }) {
     const handleBastSubmit = (e) => {
         e.preventDefault();
         if (!selectedPetugas) return;
-        
+
         const params = new URLSearchParams(bastData).toString();
         window.location.href = `/bast/${selectedPetugas}/cetak?${params}`;
         setShowBastModal(false);
@@ -79,7 +79,7 @@ export default function Realisasi({ petugasList = [] }) {
             <Head title="Realisasi Kinerja" />
 
             <div className="flex min-h-full flex-col gap-3 lg:h-full lg:min-h-0 lg:gap-4 p-4">
-                
+
                 {flash?.success && (
                     <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
                         {flash.success}

@@ -11,6 +11,7 @@ use App\Http\Controllers\TranslokMasterController;
 use App\Http\Controllers\TranslokAlokasiController;
 use App\Http\Controllers\TranslokDetailController;
 use App\Http\Controllers\KegiatanPetugasController;
+use App\Http\Controllers\MitraKemitraanController;
 use App\Http\Controllers\BastController;
 use App\Http\Controllers\RekapController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,20 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/kegiatan-petugas', [KegiatanPetugasController::class, 'store'])->name('kegiatan-petugas.store');
         Route::post('/kegiatan-petugas/copy', [KegiatanPetugasController::class, 'copyPenugasan'])->name('kegiatan-petugas.copy');
+
+        Route::prefix('mitra')->name('mitra.')->group(function () {
+            Route::get('/kemitraan', [MitraKemitraanController::class, 'index'])->name('kemitraan.index');
+            Route::post('/kemitraan', [MitraKemitraanController::class, 'store'])->name('kemitraan.store');
+            Route::put('/kemitraan/{id}', [MitraKemitraanController::class, 'update'])->name('kemitraan.update');
+            Route::delete('/kemitraan/{id}', [MitraKemitraanController::class, 'destroy'])->name('kemitraan.destroy');
+            Route::post('/kemitraan/copy', [MitraKemitraanController::class, 'copy'])->name('kemitraan.copy');
+
+            Route::get('/rekap-mitra', [MitraKemitraanController::class, 'rekapMitra'])->name('rekap-mitra');
+            Route::get('/rekap-kegiatan', [MitraKemitraanController::class, 'rekapKegiatan'])->name('rekap-kegiatan');
+
+            Route::get('/tugas', fn () => 'Halaman Tugas Saya')->name('tugas');
+            Route::get('/honor', fn () => 'Halaman Honorarium Saya')->name('honor');
+        });
 
         Route::get('/bast/{id_a}/cetak', [BastController::class, 'cetak'])->name('bast.cetak');
 
@@ -50,10 +65,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/alokasi/{id}', [TranslokAlokasiController::class, 'update'])->name('translok.alokasi.update');
             Route::delete('/alokasi/{id}', [TranslokAlokasiController::class, 'destroy'])->name('translok.alokasi.destroy');
 
+            Route::post('/tanggal-off', [TranslokAlokasiController::class, 'storeTanggalOff'])->name('translok.tgl-off.store');
+            Route::delete('/tanggal-off/{tanggal}', [TranslokAlokasiController::class, 'destroyTanggalOff'])->name('translok.tgl-off.destroy');
+
             Route::get('/detail', [TranslokDetailController::class, 'index'])->name('translok.detail.index');
             Route::post('/detail/availability', [TranslokDetailController::class, 'availability'])->name('translok.detail.availability');
             Route::post('/detail', [TranslokDetailController::class, 'store'])->name('translok.detail.store');
             Route::delete('/detail/{id}', [TranslokDetailController::class, 'destroy'])->name('translok.detail.destroy');
+
+            Route::get('/view', [TranslokDetailController::class, 'view'])->name('translok.view.index');
         });
 
         Route::resource('pegawai', PegawaiController::class)->except(['create', 'show', 'edit']);

@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 
 export default function MonitoringAnggaran({ anggaran = [], tahun }) {
     return (

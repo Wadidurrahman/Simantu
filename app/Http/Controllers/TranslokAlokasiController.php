@@ -164,13 +164,21 @@ class TranslokAlokasiController extends Controller
             ])
             ->all();
 
+        $tanggalOff = DB::table('tb_translok_tgl_off')
+            ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
+            ->orderBy('tanggal')
+            ->get(['tanggal', 'keterangan'])
+            ->all();
+
         return Inertia::render('Translok/Alokasi/Index', [
             'alokasi' => $alokasi,
             'masters' => $masters,
             'pegawai' => $pegawai,
+            'tanggalOff' => $tanggalOff,
             'tahun' => $tahun,
             'bulan' => sprintf('%02d', $bulan),
             'canManage' => $this->bolehMengelola($request),
+            'canManageTglOff' => in_array($request->user()->role, ['super_admin', 'operator'], true),
         ]);
     }
 
@@ -464,6 +472,57 @@ class TranslokAlokasiController extends Controller
             'success',
             'Alokasi translok berhasil dibatalkan.'
         );
+    }
+
+    public function storeTanggalOff(Request $request): RedirectResponse
+    {
+        abort_unless(
+            $request->user()->status === 'aktif' &&
+            in_array($request->user()->role, ['super_admin', 'operator'], true),
+            403
+        );
+
+        $tahun = $this->tahunAktif($request);
+
+        $data = $request->validate([
+            'tanggal' => ['required', 'date_format:Y-m-d'],
+            'keterangan' => ['required', 'string', 'max:255'],
+        ]);
+
+        if (substr($data['tanggal'], 0, 4) !== (string) $tahun) {
+            throw ValidationException::withMessages([
+                'tanggal' => 'Tanggal OFF harus berada dalam tahun anggaran aktif.',
+            ]);
+        }
+
+        if (DB::table('tb_translok_tgl_off')->where('tanggal', $data['tanggal'])->exists()) {
+            throw ValidationException::withMessages([
+                'tanggal' => 'Tanggal tersebut sudah terdaftar sebagai Tanggal OFF.',
+            ]);
+        }
+
+        DB::table('tb_translok_tgl_off')->insert([
+            'tanggal' => $data['tanggal'],
+            'keterangan' => $data['keterangan'],
+            'created_by' => $request->user()->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('success', 'Tanggal OFF berhasil ditambahkan.');
+    }
+
+    public function destroyTanggalOff(Request $request, string $tanggal): RedirectResponse
+    {
+        abort_unless(
+            $request->user()->status === 'aktif' &&
+            in_array($request->user()->role, ['super_admin', 'operator'], true),
+            403
+        );
+
+        DB::table('tb_translok_tgl_off')->where('tanggal', $tanggal)->delete();
+
+        return back()->with('success', 'Tanggal OFF berhasil dihapus.');
     }
 
     private function validasiMasukan(

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 import Modal from '@/Components/Modal';
 import { Plus, Pencil, Trash2, CalendarClock, Clock, ShieldCheck } from 'lucide-react';
 

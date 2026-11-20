@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 
 const months = [
     { id: 'all', name: 'Semua Bulan' },

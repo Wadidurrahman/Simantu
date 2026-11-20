@@ -112,29 +112,41 @@ class TranslokDetailController extends Controller
         $tahun = $this->tahunAktif($request);
         $alokasi = $this->kunciAlokasi($request, $data['translok_alokasi_id'], $tahun, false);
 
-        $first = max($alokasi->tanggal_mulai, now('Asia/Jakarta')->toDateString());
+        $first = $this->bolehKelolaHistoris($request)
+            ? $alokasi->tanggal_mulai
+            : max($alokasi->tanggal_mulai, now('Asia/Jakarta')->toDateString());
         $last = $alokasi->tanggal_selesai;
         $dates = [];
 
         if ($first <= $last) {
-            $takenDates = DB::table('tb_translok_detail')
-                ->where('translok_alokasi_id', $alokasi->id)
-                ->where('status', '!=', 'dibatalkan')
-                ->whereBetween('tanggal', [$first, $last])
-                ->pluck('tanggal')
+            $takenDates = DB::table('tb_translok_detail as d')
+                ->join('tb_translok_alokasi as a', 'a.id', '=', 'd.translok_alokasi_id')
+                ->where('a.pegawai_id', $alokasi->pegawai_id)
+                ->where('a.status', '!=', 'dibatalkan')
+                ->where('d.status', '!=', 'dibatalkan')
+                ->whereBetween('d.tanggal', [$first, $last])
+                ->pluck('d.tanggal')
                 ->flip();
+
+            $offDates = DB::table('tb_translok_tgl_off')
+                ->whereBetween('tanggal', [$first, $last])
+                ->pluck('keterangan', 'tanggal');
 
             for ($day = Carbon::parse($first); $day->toDateString() <= $last; $day->addDay()) {
                 $date = $day->toDateString();
 
-                // Hari Sabtu dan Minggu tidak bisa dipilih
                 if ($day->isWeekend()) {
                     continue;
                 }
 
+                $isOff = $offDates->has($date);
+                $isTaken = $takenDates->has($date);
+
                 $dates[] = [
                     'date' => $date,
-                    'taken' => $takenDates->has($date),
+                    'taken' => $isTaken,
+                    'off' => $isOff,
+                    'off_reason' => $isOff ? $offDates->get($date) : null,
                 ];
             }
         }
@@ -179,9 +191,13 @@ class TranslokDetailController extends Controller
                 ]);
             }
 
-            if ($day->isPast() && !$this->bolehKelolaHistoris($request)) {
-                 throw ValidationException::withMessages([
-                    'tanggal' => 'Pegawai tidak bisa merekam detail di tanggal yang sudah terlewat. Hubungi Ketua Tim atau Operator.',
+            $tglOff = DB::table('tb_translok_tgl_off')
+                ->where('tanggal', $data['tanggal'])
+                ->first();
+
+            if ($tglOff) {
+                throw ValidationException::withMessages([
+                    'tanggal' => "Tanggal ini ditetapkan sebagai Tanggal OFF ({$tglOff->keterangan}).",
                 ]);
             }
 
@@ -272,6 +288,59 @@ class TranslokDetailController extends Controller
         }, 3);
 
         return back()->with('success', 'Detail perjalanan dibatalkan. Volume tersedia kembali.');
+    }
+
+    public function view(Request $request): Response
+    {
+        $this->otorisasiLihat($request);
+
+        $tahun = $this->tahunAktif($request);
+        $bulan = (int) $request->input('bulan', now('Asia/Jakarta')->month);
+
+        abort_unless($bulan >= 1 && $bulan <= 12, 422);
+
+        [$awalBulan, $akhirBulan] = $this->batasBulan($tahun, $bulan);
+
+        $rows = DB::table('tb_translok_detail as d')
+            ->join('tb_translok_alokasi as a', 'a.id', '=', 'd.translok_alokasi_id')
+            ->join('tb_translok_master as m', 'm.id', '=', 'a.translok_master_id')
+            ->join('users as p', 'p.id', '=', 'a.pegawai_id')
+            ->join('tb_tim as t', 't.id', '=', 'm.tim_id')
+            ->where('m.tahun', (string) $tahun)
+            ->where('a.status', '!=', 'dibatalkan')
+            ->where('d.status', '!=', 'dibatalkan')
+            ->whereBetween('d.tanggal', [$awalBulan, $akhirBulan])
+            ->orderBy('d.tanggal')
+            ->orderBy('p.name')
+            ->get([
+                'd.id',
+                'd.tanggal',
+                'd.catatan',
+                'p.name as nama',
+                'p.nip',
+                'm.kd_translok',
+                'm.uraian',
+                'm.rate',
+                't.nama_tim as tim',
+            ])
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'tanggal' => $r->tanggal,
+                'catatan' => $r->catatan,
+                'nama' => $r->nama,
+                'nip' => $r->nip,
+                'kd_translok' => $r->kd_translok,
+                'uraian' => $r->uraian,
+                'rate' => (float) $r->rate,
+                'tim' => $r->tim,
+            ])
+            ->all();
+
+        return Inertia::render('Translok/View/Index', [
+            'rows' => $rows,
+            'tahun' => $tahun,
+            'bulan' => sprintf('%02d', $bulan),
+        ]);
     }
 
     private function kunciAlokasi(Request $request, int $id, int $tahun, bool $lock): object

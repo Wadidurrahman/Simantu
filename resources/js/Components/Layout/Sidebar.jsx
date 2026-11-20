@@ -3,12 +3,12 @@ import { Link, usePage } from '@inertiajs/react';
 import { LayoutGrid, Activity, Map, Wallet, Users, Database, FileText, Settings, X, ChevronDown, Circle, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 
 const navigationItems = [
-    { name: 'Dashboard', routeName: 'dashboard', icon: LayoutGrid, roles: ['admin', 'ketua', 'ketua_tim', 'pegawai', 'mitra'] },
+    { name: 'Dashboard', routeName: 'dashboard', icon: LayoutGrid, roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai', 'mitra'] },
     {
-        name: 'Manajemen Kegiatan', icon: Activity, roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'],
+        name: 'Manajemen Kegiatan', icon: Activity, roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai'],
         children: [
-            { name: 'Daftar Kegiatan', routeName: 'kegiatan.index', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
-            { name: 'Realisasi Kinerja', routeName: 'kegiatan.realisasi', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
+            { name: 'Daftar Kegiatan', routeName: 'kegiatan.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai'] },
+            { name: 'Realisasi Kinerja', routeName: 'kegiatan.realisasi', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai'] },
         ]
     },
     {
@@ -18,18 +18,19 @@ const navigationItems = [
         ]
     },
     {
-        name: 'Perjalanan Dinas', icon: Map, roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'],
+        name: 'Perjalanan Dinas', icon: Map, roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai'],
         children: [
-            { name: 'Master Translok', routeName: 'translok.master.index', roles: ['admin', 'ketua', 'ketua_tim'] },
-            { name: 'Alokasi Translok', routeName: 'translok.alokasi', roles: ['admin', 'ketua', 'ketua_tim'] },
-            { name: 'Detail Perjalanan', routeName: 'translok.detail', roles: ['admin', 'ketua', 'ketua_tim', 'pegawai'] },
+            { name: 'Alokasi Translok', routeName: 'translok.alokasi.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
+            { name: 'Jadwal Translok', routeName: 'translok.detail.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai'] },
+            { name: 'View Translok', routeName: 'translok.view.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim', 'pegawai'] },
         ]
     },
     {
-        name: 'Mitra', icon: Users, roles: ['admin', 'ketua', 'ketua_tim'],
+        name: 'Mitra', icon: Users, roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'],
         children: [
-            { name: 'Data Mitra BPS', routeName: 'mitra.index', roles: ['admin', 'ketua', 'ketua_tim'] },
-            { name: 'Alokasi Honor', routeName: 'honor.index', roles: ['admin', 'ketua', 'ketua_tim'] },
+            { name: 'Input Kemitraan', routeName: 'mitra.kemitraan.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
+            { name: 'Rekap Mitra', routeName: 'mitra.rekap-mitra', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
+            { name: 'Rekap Kegiatan', routeName: 'mitra.rekap-kegiatan', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
         ]
     },
     {
@@ -39,17 +40,18 @@ const navigationItems = [
         ]
     },
     {
-        name: 'Master Data', icon: Database, roles: ['admin', 'ketua', 'ketua_tim'],
+        name: 'Master Data', icon: Database, roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'],
         children: [
-            { name: 'Pegawai Organik', routeName: 'pegawai.index', roles: ['admin', 'ketua', 'ketua_tim'] },
-            { name: 'Master Wilayah', routeName: 'wilayah.index', roles: ['admin', 'ketua', 'ketua_tim'] },
+            { name: 'Pegawai Organik', routeName: 'pegawai.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
+            { name: 'Master Translok', routeName: 'translok.master.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
+            { name: 'Master Wilayah', routeName: 'wilayah.index', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
         ]
     },
     {
-        name: 'Laporan', icon: FileText, roles: ['admin', 'ketua', 'ketua_tim'],
+        name: 'Laporan', icon: FileText, roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'],
         children: [
-            { name: 'Rekapitulasi', routeName: 'laporan.rekap', roles: ['admin', 'ketua', 'ketua_tim'] },
-            { name: 'Monitoring Anggaran', routeName: 'laporan.anggaran', roles: ['admin', 'ketua', 'ketua_tim'] },
+            { name: 'Rekapitulasi', routeName: 'laporan.rekap', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
+            { name: 'Monitoring Anggaran', routeName: 'laporan.anggaran', roles: ['admin', 'pimpinan', 'ketua', 'ketua_tim'] },
         ]
     }
 ];
@@ -57,7 +59,11 @@ const navigationItems = [
 export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) {
     const { auth, url } = usePage().props;
     const rawRole = (auth.user?.effective_role || auth.user?.role || auth.user?.role_name || '').toString().toLowerCase();
-    const userRole = ['ketua', 'ketua_tim'].includes(rawRole) ? 'ketua' : rawRole || 'pegawai';
+    const userRole = ['super_admin', 'operator', 'admin'].includes(rawRole)
+        ? 'admin'
+        : ['ketua', 'ketua_tim'].includes(rawRole)
+            ? 'ketua'
+            : rawRole || 'pegawai';
     const [openMenus, setOpenMenus] = useState({});
 
     useEffect(() => {

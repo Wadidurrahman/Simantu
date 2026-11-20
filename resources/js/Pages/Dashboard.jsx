@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import DashboardHeader from '@/Components/Dashboard/DashboardHeader';
 import KpiCards from '@/Components/Dashboard/KpiCards';

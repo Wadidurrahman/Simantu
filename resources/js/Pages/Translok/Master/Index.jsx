@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Components/Layout/AuthenticatedLayout';
 import {
     Plus,
     Pencil,
